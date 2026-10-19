@@ -69,7 +69,7 @@ public class Prueba5 {
         grupo1.add(juan);
         grupo1.add(maria);
 
-        Salida.accion("Carlos organiza una sesion de ayer 15:00 (60 min) en la cancha libre, con Sofia, Juan y Maria");
+        Salida.accion("Carlos organiza una sesion de ayer 15:00 en la cancha libre, con Sofia, Juan y Maria");
         SesionEntrenamiento sesionPasada = null;
         try {
             sesionPasada = club.organizarSesion(DatosBase.ENTRENADOR1, cancha, ayer,
