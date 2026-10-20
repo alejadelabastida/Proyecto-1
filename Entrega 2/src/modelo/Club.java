@@ -117,10 +117,7 @@ public class Club implements Serializable {
         return lineas;
     }
 
-    // =====================================================================
     //  PERSONA 1: usuarios, deportes de conjunto y competencias
-    //  (cada quien reemplaza el cuerpo de sus metodos; no cambien las firmas)
-    // =====================================================================
 
     public Usuario iniciarSesion(String login, String password) {
         if (login == null || password == null) {
@@ -610,9 +607,7 @@ public class Club implements Serializable {
     }
 
 
-    // =====================================================================
-    //  PERSONA 3: individuales, tienda, cafeteria, inventario y ventas
-    // =====================================================================
+    //  PERSONA 2: individuales, tienda, cafeteria, inventario y ventas
 
     public Reserva reservar(int codigoSocio, Instalacion instalacion, LocalDate fecha,
             LocalTime horaInicio, LocalTime horaFin, int numeroJugadores, Modalidad modalidad) {
@@ -639,9 +634,7 @@ public class Club implements Serializable {
         throw new UnsupportedOperationException("Pendiente: Persona 3");
     }
 
-    // =====================================================================
     //  PERSONA 2: entrenamientos
-    // =====================================================================
 
     public SesionEntrenamiento organizarSesion(int codigoEntrenador, Instalacion instalacion,
             LocalDate fecha, LocalTime hora, int duracionMinutos, List<Socio> convocados) {
@@ -735,9 +728,7 @@ public class Club implements Serializable {
         return resultado;
     }
 
-    // =====================================================================
     //  PERSONA 2: turnos
-    // =====================================================================
 
     public SolicitudCambioTurno solicitarCambioTurno(int codigoEmpleado, Turno turno, String motivo,
             String nuevoDiaSemana, LocalTime nuevaHoraInicio, LocalTime nuevaHoraFin) {
@@ -830,10 +821,8 @@ public class Club implements Serializable {
         return true;
     }
 
-    // =====================================================================
-    //  PERSONA 2: reportes deportivos e historiales (RF-34, RF-40, RF-41)
-    //  Todos lanzan ReglaNegocioException si el periodo es invalido o no hay datos.
-    // =====================================================================
+
+    //  PERSONA 2: reportes deportivos e historiales
 
     public List<String> reporteAsistencia(LocalDate desde, LocalDate hasta) {
         validarPeriodo(desde, hasta);
