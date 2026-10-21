@@ -10,10 +10,56 @@ import modelo.*;
 public class Prueba3 {
 
     public static void main(String[] args) {
-        Club club = new Club();
+        String carpeta = "datos/prueba3";
+        if (args.length > 0 && !args[0].trim().isEmpty()) {
+            carpeta = args[0].trim();
+        } else {
+            System.out.print("Carpeta de datos (Enter = datos/prueba3): ");
+            java.util.Scanner sc = new java.util.Scanner(System.in);
+            if (sc.hasNextLine()) {
+                String elegida = sc.nextLine().trim();
+                if (!elegida.isEmpty()) {
+                    carpeta = elegida;
+                }
+            }
+        }
+
+        persistencia.Persistencia persistencia = new persistencia.Persistencia(carpeta);
+        boolean yaEjecutada = persistencia.existe();
+        Club club = persistencia.cargar();
+        Salida.titulo("PRUEBA 3: persistencia y reglas de negocio");
+
+        if (yaEjecutada) {
+            Salida.linea("Cargando datos previamente guardados en " + carpeta);
+            verificarPersistencia(club);
+            return;
+        }
+
         DatosBase.cargar(club);
-        Salida.titulo("PRUEBA 3: Competencias y nominas");
         ejecutar(club);
+        club.guardar();
+
+        // Comprobacion real: se crea otro Club leyendo el archivo, no se reutiliza el original.
+        Club recuperado = new persistencia.Persistencia(carpeta).cargar();
+        verificarPersistencia(recuperado);
+        Salida.linea("Datos guardados en " + carpeta
+                + ". Ejecute de nuevo para consultar los datos persistidos.");
+    }
+
+    private static void verificarPersistencia(Club club) {
+        if (club.getCompetencias().size() != 1) {
+            throw new IllegalStateException("No se recupero la competencia de la prueba 3");
+        }
+        Competencia c = club.getCompetencias().get(0);
+        if (c.getInscripciones().size() != 1 || c.getPartidos().size() != 1) {
+            throw new IllegalStateException("No se conservaron la nomina o el partido oficial");
+        }
+        InscripcionEquipo ie = c.getInscripciones().get(0);
+        if (ie.getNomina().size() != 7) {
+            throw new IllegalStateException("La nomina no se recupero completa");
+        }
+        Salida.linea("Persistencia verificada: 7 jugadores en nomina y 1 partido en competencia.");
+        Salida.ok();
     }
 
     private static void ejecutar(Club club) {

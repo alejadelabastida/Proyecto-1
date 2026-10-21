@@ -614,20 +614,398 @@ public class Club implements Serializable {
     //  PERSONA 3: individuales, tienda, cafeteria, inventario y ventas
     // =====================================================================
 
-    public Reserva reservar(int codigoSocio, Instalacion instalacion, LocalDate fecha,
-            LocalTime horaInicio, LocalTime horaFin, int numeroJugadores, Modalidad modalidad) {
-        throw new UnsupportedOperationException("Pendiente: Persona 3");
+    
+    private void validarCupoInstalaciones(Instalacion instalacion,
+            LocalDate fecha, LocalTime inicio, LocalTime fin) {
+
+        Deporte deporte = instalacion.getDisciplina();
+        int maximo = buscarRegla(deporte).maximo();
+
+        if (maximo <= 0) {
+            throw new ReglaNegocioException(
+                    "No hay instalaciones habilitadas para este deporte");
+        }
+
+        List<LocalTime> momentos = new ArrayList<>();
+        momentos.add(inicio);
+
+        for (Instalacion otra : instalaciones) {
+
+            if (otra == instalacion || otra.getDisciplina() != deporte) {
+                continue;
+            }
+
+            for (Reserva reserva : otra.getReservas()) {
+
+                LocalTime comienzo = reserva.getHoraInicio();
+
+                if (fecha.equals(reserva.getFecha()) &&
+                        comienzo.isAfter(inicio) && comienzo.isBefore(fin)) {
+
+                    momentos.add(comienzo);
+                }
+            }
+
+            for (SesionEntrenamiento sesion : otra.getSesiones()) {
+
+                LocalTime comienzo = sesion.getHora();
+
+                if (fecha.equals(sesion.getFecha()) &&
+                        comienzo.isAfter(inicio) && comienzo.isBefore(fin)) {
+
+                    momentos.add(comienzo);
+                }
+            }
+        }
+
+        for (LocalTime momento : momentos) {
+
+            int ocupadas = 0;
+
+            for (Instalacion otra : instalaciones) {
+
+                if (otra == instalacion || otra.getDisciplina() != deporte) {
+                    continue;
+                }
+
+                boolean ocupada = false;
+
+                for (Reserva reserva : otra.getReservas()) {
+
+                    if (fecha.equals(reserva.getFecha()) &&
+                            !momento.isBefore(reserva.getHoraInicio()) &&
+                            momento.isBefore(reserva.getHoraFin())) {
+
+                        ocupada = true;
+                        break;
+                    }
+                }
+
+                if (!ocupada) {
+
+                    for (SesionEntrenamiento sesion : otra.getSesiones()) {
+
+                        if (fecha.equals(sesion.getFecha()) &&
+                                !momento.isBefore(sesion.getHora()) &&
+                                momento.isBefore(sesion.getHoraFin())) {
+
+                            ocupada = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (ocupada) {
+                    ocupadas++;
+                }
+            }
+
+            if (ocupadas >= maximo) {
+                throw new ReglaNegocioException(
+                        "Se alcanzo el maximo de instalaciones simultaneas de "
+                        + deporte);
+            }
+        }
     }
 
+    
+    public Reserva reservar(int codigoSocio, Instalacion instalacion, LocalDate fecha,
+            LocalTime horaInicio, LocalTime horaFin, int numeroJugadores, Modalidad modalidad) {
+
+        Usuario usuario = buscarPorCodigo(codigoSocio);
+
+        if (!(usuario instanceof Socio)) {
+            throw new ReglaNegocioException("El codigo no corresponde a un socio");
+        }
+
+        if (instalacion == null || !instalaciones.contains(instalacion) ||
+                fecha == null || horaInicio == null || horaFin == null) {
+            throw new ReglaNegocioException("Datos de reserva invalidos");
+        }
+
+        if (!horaInicio.isBefore(horaFin)) {
+            throw new ReglaNegocioException("El horario es invalido");
+        }
+
+        if (!instalacion.admite(numeroJugadores, modalidad)) {
+            throw new ReglaNegocioException(
+                    "Cantidad de jugadores o modalidad invalida");
+        }
+
+        long segundos = java.time.Duration.between(
+                horaInicio, horaFin).getSeconds();
+
+        int duracionMinutos = (int) ((segundos + 59) / 60);
+
+        if (!instalacion.disponible(fecha, horaInicio, duracionMinutos)) {
+            throw new ReglaNegocioException("La instalacion esta ocupada");
+        }
+
+        validarCupoInstalaciones(instalacion, fecha, horaInicio, horaFin);
+
+        Reserva reserva = new Reserva((Socio) usuario, instalacion, fecha,
+                horaInicio, horaFin, numeroJugadores, modalidad);
+
+        instalacion.agregarReserva(reserva);
+        reservas.add(reserva);
+
+        guardar();
+
+        return reserva;
+    }
+
+  
+    
     public PartidoPractica programarPractica(List<InscripcionDisciplina> inscripciones,
             Modalidad modalidad, LocalDate fecha) {
-        throw new UnsupportedOperationException("Pendiente: Persona 3");
+
+        if (inscripciones == null || inscripciones.isEmpty()) {
+            throw new ReglaNegocioException("No hay participantes");
+        }
+
+        if (fecha == null || modalidad == null) {
+            throw new ReglaNegocioException("Faltan datos del partido");
+        }
+
+        int nivelMinimo = Nivel.AVANZADO.ordinal();
+        int nivelMaximo = Nivel.PRINCIPIANTE.ordinal();
+
+        boolean participaEntrenador = false;
+
+        for (InscripcionDisciplina inscripcion : inscripciones) {
+
+            if (inscripcion == null) {
+                throw new ReglaNegocioException("Inscripcion inexistente");
+            }
+
+            Socio socio = inscripcion.getSocio();
+
+            if (socio == null || !usuarios.contains(socio)) {
+                throw new ReglaNegocioException("El socio no esta registrado");
+            }
+
+            if (!socio.getInscripciones().contains(inscripcion)) {
+                throw new ReglaNegocioException(
+                        "La inscripcion no pertenece al socio");
+            }
+
+            Nivel nivel = inscripcion.getNivel();
+
+            if (nivel == null) {
+                throw new ReglaNegocioException(
+                        "El participante no tiene nivel asignado");
+            }
+
+            int numeroNivel = nivel.ordinal();
+
+            if (numeroNivel < nivelMinimo) {
+                nivelMinimo = numeroNivel;
+            }
+
+            if (numeroNivel > nivelMaximo) {
+                nivelMaximo = numeroNivel;
+            }
+
+            Entrenador entrenador = socio.getEntrenadorAsociado();
+
+            if (entrenador != null && usuarios.contains(entrenador)) {
+                participaEntrenador = true;
+            }
+        }
+
+        if (nivelMaximo - nivelMinimo > 1 && !participaEntrenador) {
+            throw new ReglaNegocioException(
+                    "Los participantes tienen niveles incompatibles");
+        }
+
+        PartidoPractica partido;
+
+        try {
+            partido = new PartidoPractica(inscripciones, modalidad, fecha);
+        } catch (IllegalArgumentException e) {
+            throw new ReglaNegocioException(e.getMessage());
+        }
+
+        partidos.add(partido);
+
+        guardar();
+
+        return partido;
     }
+
+
+    
+    public void vincularSocioEntrenador(int codigoSocio, int codigoEntrenador) {
+
+        Usuario usuario = buscarPorCodigo(codigoSocio);
+        Entrenador entrenador = buscarEntrenador(codigoEntrenador);
+
+        if (!(usuario instanceof Socio) || entrenador == null) {
+            throw new ReglaNegocioException(
+                    "Socio o entrenador no registrado");
+        }
+
+        Socio socio = (Socio) usuario;
+
+        for (Usuario otro : usuarios) {
+
+            if (otro instanceof Socio) {
+
+                Socio otroSocio = (Socio) otro;
+
+                if (otroSocio != socio &&
+                        otroSocio.getEntrenadorAsociado() == entrenador) {
+
+                    throw new ReglaNegocioException(
+                            "El entrenador ya esta asociado a otro socio");
+                }
+            }
+        }
+
+        if (socio.getEntrenadorAsociado() != null &&
+                socio.getEntrenadorAsociado() != entrenador) {
+
+            throw new ReglaNegocioException(
+                    "El socio ya tiene otro entrenador asociado");
+        }
+
+        socio.asociarEntrenador(entrenador);
+
+        guardar();
+    }
+
+    
+    private int valorPractica(Map<String, Integer> valores,
+            String nombre, boolean obligatorio) {
+
+        Integer dato = valores.get(nombre);
+
+        if (dato == null) {
+
+            if (obligatorio) {
+                throw new ReglaNegocioException(
+                        "Falta la estadistica: " + nombre);
+            }
+
+            return 0;
+        }
+
+        if (dato < 0) {
+            throw new ReglaNegocioException(
+                    "La estadistica no puede ser negativa: " + nombre);
+        }
+
+        return dato;
+    }
+
 
     public void registrarPractica(PartidoPractica partido,
             Map<InscripcionDisciplina, Map<String, Integer>> estadisticas) {
-        throw new UnsupportedOperationException("Pendiente: Persona 3");
+
+        if (partido == null || !partidos.contains(partido)) {
+            throw new ReglaNegocioException("El partido no esta registrado");
+        }
+
+        if (partido.resuelto() || !partido.getEstadisticasPractica().isEmpty()) {
+            throw new ReglaNegocioException(
+                    "El partido ya tiene estadisticas o resultado");
+        }
+
+        List<InscripcionDisciplina> participantes = partido.getParticipantes();
+
+        if (estadisticas == null || estadisticas.size() != participantes.size()) {
+            throw new ReglaNegocioException(
+                    "Se necesitan las estadisticas de todos los participantes");
+        }
+
+        boolean esMesa = partido.getDeporte() == Deporte.TENIS_DE_MESA;
+
+        List<EstadisticaPractica> nuevas = new ArrayList<>();
+
+        int mitad = participantes.size() / 2;
+        int setsPrimeraPareja = -1;
+        int setsSegundaPareja = -1;
+
+        for (int i = 0; i < participantes.size(); i++) {
+
+            InscripcionDisciplina inscripcion = participantes.get(i);
+            Map<String, Integer> valores = estadisticas.get(inscripcion);
+
+            if (valores == null) {
+                throw new ReglaNegocioException(
+                        "Faltan estadisticas de un participante");
+            }
+
+            int sets = valorPractica(valores, "sets", true);
+            int games = valorPractica(valores, "games", !esMesa);
+            int aces = valorPractica(valores, "aces", !esMesa);
+            int errores = valorPractica(valores, "erroresNoForzados", !esMesa);
+            int puntos = valorPractica(valores, "puntosTotales", esMesa);
+
+            if (i < mitad) {
+
+                if (setsPrimeraPareja == -1) {
+                    setsPrimeraPareja = sets;
+                } else if (setsPrimeraPareja != sets) {
+                    throw new ReglaNegocioException(
+                            "Los integrantes de una pareja deben tener los mismos sets ganados");
+                }
+
+            } else {
+
+                if (setsSegundaPareja == -1) {
+                    setsSegundaPareja = sets;
+                } else if (setsSegundaPareja != sets) {
+                    throw new ReglaNegocioException(
+                            "Los integrantes de una pareja deben tener los mismos sets ganados");
+                }
+            }
+
+            EstadisticaPractica nueva = new EstadisticaPractica(
+                    inscripcion, sets, games, aces, errores, puntos);
+
+            nuevas.add(nueva);
+        }
+
+        if (setsPrimeraPareja == setsSegundaPareja) {
+            throw new ReglaNegocioException(
+                    "Debe existir un ganador por sets");
+        }
+
+        boolean ganaPrimeraPareja = setsPrimeraPareja > setsSegundaPareja;
+
+        for (EstadisticaPractica nueva : nuevas) {
+            partido.agregarEstadisticaPractica(nueva);
+        }
+
+        partido.registrarResultado();
+
+        for (int i = 0; i < participantes.size(); i++) {
+
+            InscripcionDisciplina inscripcion = participantes.get(i);
+
+            boolean gana = (i < mitad && ganaPrimeraPareja)
+                    || (i >= mitad && !ganaPrimeraPareja);
+
+            int nuevoPuntaje = inscripcion.getPuntajeRanking();
+
+            if (gana) {
+                nuevoPuntaje += 10;
+            } else {
+                nuevoPuntaje -= 10;
+
+                if (nuevoPuntaje < 0) {
+                    nuevoPuntaje = 0;
+                }
+            }
+
+            inscripcion.actualizarRanking(
+                    nuevoPuntaje, partido.getFecha());
+        }
+
+        guardar();
     }
+
 
     public VentaCafeteria comprarCafeteria(int codigoSocio, Map<Producto, Integer> productos,
             double propina, int puntosAUsar) {
@@ -657,6 +1035,17 @@ public class Club implements Serializable {
         }
         if (!instalacion.disponible(fecha, hora, duracionMinutos)) {
             throw new ReglaNegocioException("La instalacion esta ocupada en ese horario");
+        }
+        
+
+        Deporte disciplina = instalacion.getDisciplina();
+
+        if (disciplina == Deporte.TENIS ||
+                disciplina == Deporte.PADEL ||
+                disciplina == Deporte.TENIS_DE_MESA) {
+
+            validarCupoInstalaciones(instalacion, fecha, hora,
+                    hora.plusMinutes(duracionMinutos));
         }
 
         SesionEntrenamiento sesion = new SesionEntrenamiento(entrenador, instalacion, fecha, hora, duracionMinutos);

@@ -5,10 +5,51 @@ import modelo.*;
 public class Prueba10 {
 
     public static void main(String[] args) {
-        Club club = new Club();
+        String carpeta = "datos/prueba10";
+        if (args.length > 0 && !args[0].trim().isEmpty()) {
+            carpeta = args[0].trim();
+        } else {
+            System.out.print("Carpeta de datos (Enter = datos/prueba10): ");
+            java.util.Scanner sc = new java.util.Scanner(System.in);
+            if (sc.hasNextLine()) {
+                String elegida = sc.nextLine().trim();
+                if (!elegida.isEmpty()) {
+                    carpeta = elegida;
+                }
+            }
+        }
+
+        persistencia.Persistencia persistencia = new persistencia.Persistencia(carpeta);
+        boolean yaEjecutada = persistencia.existe();
+        Club club = persistencia.cargar();
+        Salida.titulo("PRUEBA 10: persistencia y reglas de negocio");
+
+        if (yaEjecutada) {
+            Salida.linea("Cargando datos previamente guardados en " + carpeta);
+            verificarPersistencia(club);
+            return;
+        }
+
         DatosBase.cargar(club);
-        Salida.titulo("PRUEBA 10: Login, perfil y administrador");
         ejecutar(club);
+        club.guardar();
+
+        // Comprobacion real: se crea otro Club leyendo el archivo, no se reutiliza el original.
+        Club recuperado = new persistencia.Persistencia(carpeta).cargar();
+        verificarPersistencia(recuperado);
+        Salida.linea("Datos guardados en " + carpeta
+                + ". Ejecute de nuevo para consultar los datos persistidos.");
+    }
+
+    private static void verificarPersistencia(Club club) {
+        if (club.getUsuarios().size() < 8 ||
+                !(club.iniciarSesion("admin", "admin123") instanceof Administrador) ||
+                club.iniciarSesion("admin", "incorrecta") != null) {
+            throw new IllegalStateException("La informacion de usuarios no se recupero correctamente");
+        }
+        Salida.linea("Persistencia verificada: " + club.getUsuarios().size()
+                + " usuarios y autenticacion del administrador.");
+        Salida.ok();
     }
 
     private static void ejecutar(Club club) {

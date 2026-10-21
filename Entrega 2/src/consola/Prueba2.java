@@ -10,10 +10,54 @@ import modelo.*;
 public class Prueba2 {
 
     public static void main(String[] args) {
-        Club club = new Club();
+        String carpeta = "datos/prueba2";
+        if (args.length > 0 && !args[0].trim().isEmpty()) {
+            carpeta = args[0].trim();
+        } else {
+            System.out.print("Carpeta de datos (Enter = datos/prueba2): ");
+            java.util.Scanner sc = new java.util.Scanner(System.in);
+            if (sc.hasNextLine()) {
+                String elegida = sc.nextLine().trim();
+                if (!elegida.isEmpty()) {
+                    carpeta = elegida;
+                }
+            }
+        }
+
+        persistencia.Persistencia persistencia = new persistencia.Persistencia(carpeta);
+        boolean yaEjecutada = persistencia.existe();
+        Club club = persistencia.cargar();
+        Salida.titulo("PRUEBA 2: persistencia y reglas de negocio");
+
+        if (yaEjecutada) {
+            Salida.linea("Cargando datos previamente guardados en " + carpeta);
+            verificarPersistencia(club);
+            return;
+        }
+
         DatosBase.cargar(club);
-        Salida.titulo("PRUEBA 2: Partidos internos y sanciones");
         ejecutar(club);
+        club.guardar();
+
+        // Comprobacion real: se crea otro Club leyendo el archivo, no se reutiliza el original.
+        Club recuperado = new persistencia.Persistencia(carpeta).cargar();
+        verificarPersistencia(recuperado);
+        Salida.linea("Datos guardados en " + carpeta
+                + ". Ejecute de nuevo para consultar los datos persistidos.");
+    }
+
+    private static void verificarPersistencia(Club club) {
+        if (club.getPartidos().size() != 1) {
+            throw new IllegalStateException("No se recupero el partido interno de la prueba 2");
+        }
+        PartidoInterno p = (PartidoInterno) club.getPartidos().get(0);
+        if (!p.tieneResultado() || p.getMarcadorEquipo1() != 2 || p.getMarcadorEquipo2() != 1
+                || p.getEstadisticas().isEmpty()) {
+            throw new IllegalStateException("El resultado o las estadisticas no se conservaron");
+        }
+        Salida.linea("Persistencia verificada: partido 2-1 y "
+                + p.getEstadisticas().size() + " estadistica(s) cargadas.");
+        Salida.ok();
     }
 
     private static void ejecutar(Club club) {

@@ -6,10 +6,55 @@ import modelo.*;
 public class Prueba1 {
 
     public static void main(String[] args) {
-        Club club = new Club();
+        String carpeta = "datos/prueba1";
+        if (args.length > 0 && !args[0].trim().isEmpty()) {
+            carpeta = args[0].trim();
+        } else {
+            System.out.print("Carpeta de datos (Enter = datos/prueba1): ");
+            java.util.Scanner sc = new java.util.Scanner(System.in);
+            if (sc.hasNextLine()) {
+                String elegida = sc.nextLine().trim();
+                if (!elegida.isEmpty()) {
+                    carpeta = elegida;
+                }
+            }
+        }
+
+        persistencia.Persistencia persistencia = new persistencia.Persistencia(carpeta);
+        boolean yaEjecutada = persistencia.existe();
+        Club club = persistencia.cargar();
+        Salida.titulo("PRUEBA 1: persistencia y reglas de negocio");
+
+        if (yaEjecutada) {
+            Salida.linea("Cargando datos previamente guardados en " + carpeta);
+            verificarPersistencia(club);
+            return;
+        }
+
         DatosBase.cargar(club);
-        Salida.titulo("PRUEBA 1: Equipos, jugadores e inscripciones");
         ejecutar(club);
+        club.guardar();
+
+        // Comprobacion real: se crea otro Club leyendo el archivo, no se reutiliza el original.
+        Club recuperado = new persistencia.Persistencia(carpeta).cargar();
+        verificarPersistencia(recuperado);
+        Salida.linea("Datos guardados en " + carpeta
+                + ". Ejecute de nuevo para consultar los datos persistidos.");
+    }
+
+    private static void verificarPersistencia(Club club) {
+        int azules = -1;
+        for (Equipo e : club.getEquipos()) {
+            if ("Azules".equals(e.getNombre())) {
+                azules = e.getJugadores().size();
+            }
+        }
+        if (azules != 2 || club.getUsuarios().size() < 9) {
+            throw new IllegalStateException("No se recuperaron las inscripciones de la prueba 1");
+        }
+        Salida.linea("Persistencia verificada: Azules tiene " + azules + " jugadores; "
+                + club.getUsuarios().size() + " usuarios registrados.");
+        Salida.ok();
     }
 
     private static void ejecutar(Club club) {
