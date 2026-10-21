@@ -3,7 +3,8 @@ package modelo;
 import java.time.LocalDate;
 
 public class PartidoCompeticion extends PartidoEquipo {
-    private final String institucionRival;
+	private static final long serialVersionUID = 1L;
+	private final String institucionRival;
     private final String escenario;
     private Competencia competencia;
     private Fase fase;

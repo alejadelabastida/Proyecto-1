@@ -1,6 +1,7 @@
 package modelo;
 
 public class JugadorNomina  implements java.io.Serializable {
+	private static final long serialVersionUID = 1L;
     private final Jugador jugador;
     private final InscripcionEquipo inscripcion;
     public JugadorNomina(Jugador jugador, InscripcionEquipo inscripcion) {

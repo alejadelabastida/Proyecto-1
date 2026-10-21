@@ -4,7 +4,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 public abstract class Competencia  implements java.io.Serializable {
-    private final String nombre;
+   
+	private static final long serialVersionUID = 1L;
+	
+	private final String nombre;
     private final String entidadOrganizadora;
     private final String temporada;
     private final Deporte deporte;

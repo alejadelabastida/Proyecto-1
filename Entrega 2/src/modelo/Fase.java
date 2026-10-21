@@ -1,6 +1,8 @@
 package modelo;
 
 public class Fase  implements java.io.Serializable {
+	private static final long serialVersionUID = 1L;
+	
     private final TipoFase tipo;
     private final int orden;
     public Fase(TipoFase tipo, int orden) {

@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Jugador extends Socio {
+	private static final long serialVersionUID = 1L;
     private final String posicion;
     private final int numeroCamiseta;
     private final List<Equipo> equipos = new ArrayList<>();

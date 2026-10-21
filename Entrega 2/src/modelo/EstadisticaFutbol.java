@@ -1,6 +1,9 @@
 package modelo;
 
 public class EstadisticaFutbol extends EstadisticaPartido {
+	
+	private static final long serialVersionUID = 1L;
+	
     private int goles;
     private int asistencias;
     private int tarjetasAmarillas;

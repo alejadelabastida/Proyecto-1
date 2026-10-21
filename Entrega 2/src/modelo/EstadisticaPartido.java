@@ -1,6 +1,8 @@
 package modelo;
 
 public abstract class EstadisticaPartido  implements java.io.Serializable {
+	private static final long serialVersionUID = 1L;
+	
     private final Jugador jugador;
     private final Partido partido;
     protected EstadisticaPartido(Jugador jugador, Partido partido) {

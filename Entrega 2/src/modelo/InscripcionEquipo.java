@@ -5,6 +5,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class InscripcionEquipo  implements java.io.Serializable {
+	
+	private static final long serialVersionUID = 1L;
+	
     private final LocalDate fecha;
     private final Equipo equipo;
     private final Competencia competencia;

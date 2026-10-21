@@ -3,6 +3,9 @@ package modelo;
 import java.util.List;
 
 public class Administrador extends Usuario {
+	
+	private static final long serialVersionUID = 1L;
+	
     public Administrador(int codigo, String nombre, String apellido, String login, String password) {
         super(codigo, nombre, apellido, login, password);
     }

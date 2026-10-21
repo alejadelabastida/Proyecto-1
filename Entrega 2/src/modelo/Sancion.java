@@ -3,7 +3,8 @@ package modelo;
 import java.time.LocalDate;
 
 public class Sancion  implements java.io.Serializable {
-    private final int id;
+	private static final long serialVersionUID = 1L;
+	private final int id;
     private final TipoSancion tipo;
     private final LocalDate fecha;
     private final Jugador jugador;

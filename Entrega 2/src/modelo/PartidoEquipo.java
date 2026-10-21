@@ -3,7 +3,8 @@ package modelo;
 import java.time.LocalDate;
 
 public abstract class PartidoEquipo extends Partido {
-    private final Equipo equipo1;
+	private static final long serialVersionUID = 1L;
+	private final Equipo equipo1;
     private final Equipo equipo2;
     private int marcadorEquipo1;
     private int marcadorEquipo2;

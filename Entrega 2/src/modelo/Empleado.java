@@ -1,6 +1,9 @@
 package modelo;
 
 public abstract class Empleado extends Usuario {
+	
+	private static final long serialVersionUID = 1L;
+	
     private final String codigoDescuento;
     private final java.util.List<Turno> turnos = new java.util.ArrayList<>();
     protected Empleado(int codigo, String nombre, String apellido, String login, String password, String codigoDescuento) {

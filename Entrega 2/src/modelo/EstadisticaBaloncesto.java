@@ -1,6 +1,9 @@
 package modelo;
 
 public class EstadisticaBaloncesto extends EstadisticaPartido {
+	
+	private static final long serialVersionUID = 1L;
+	
     private int puntos;
     private int rebotes;
     public EstadisticaBaloncesto(Jugador jugador, Partido partido) {

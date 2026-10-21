@@ -5,6 +5,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 public abstract class Partido  implements java.io.Serializable {
+	
+	private static final long serialVersionUID = 1L;
+	
     private final LocalDate fecha;
     private final Deporte deporte;
     private final List<EstadisticaPartido> estadisticas = new ArrayList<>();

@@ -4,6 +4,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Equipo  implements java.io.Serializable {
+	
+	private static final long serialVersionUID = 1L;
+	
     private final String nombre;
     private final Deporte deporte;
     private final Categoria categoria;
