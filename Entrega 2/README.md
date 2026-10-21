@@ -15,10 +15,10 @@
 6. Lea la salida. Cada escenario muestra un título y su resultado:
    `[OK]`: la operación válida funcionó,
    `[RECHAZADO esperado: motivo]`: la operación inválida fue rechazada por una regla de negocio,
-   `[FALLO]`: no se obtuvo el resultado esperado 
+   `[ERROR]`: no se obtuvo el resultado esperado 
 
    También se imprime el estado de los datos antes y después de los escenarios.
-7. Para comprobar la persistencia, ejecute la misma prueba por segunda vez. El programa dice "Datos cargados" y muestra el estado que quedó guardado en `datos/pruebaN/club.dat`.
+7. Para comprobar la persistencia, ejecute la misma prueba por segunda vez. El programa dice "Se cargaron datos existentes" y muestra el estado que quedó guardado en `datos/pruebaN/club.dat`.
 8. Para repetir una prueba desde cero, borre su carpeta `datos/pruebaN` y vuelva a ejecutarla. 
 9. Repita los pasos 4 a 8 con las demás pruebas.
 

@@ -1,9 +1,11 @@
 package consola;
 
 import modelo.*;
+import java.time.LocalDate;
+import java.time.LocalTime;
 
 public class Prueba10 {
-
+	
     public static void main(String[] args) {
         String carpeta = "datos/prueba10";
         if (args.length > 0 && !args[0].trim().isEmpty()) {
@@ -63,13 +65,11 @@ public class Prueba10 {
             Salida.linea("ERROR: no se inicio sesion como administrador");
         }
 
-        Salida.accion("Ana intenta entrar con una clave incorrecta");
-        Usuario incorrecto = club.iniciarSesion("admin", "incorrecta");
-        if (incorrecto == null) {
-            Salida.linea("Credenciales incorrectas rechazadas");
-        } else {
-            Salida.linea("ERROR: se acepto una clave incorrecta");
-        }
+        Salida.esperaRechazo("Ana intenta entrar con una clave incorrecta", () -> {
+            if (club.iniciarSesion("admin", "incorrecta") == null) {
+                throw new ReglaNegocioException("Credenciales incorrectas");
+            }
+        });
 
         Salida.seccion("RF-44: consulta del perfil");
         Salida.accion("Consultar los datos de Ana");
@@ -82,13 +82,13 @@ public class Prueba10 {
         }
 
         Salida.seccion("RF-42: restricciones del administrador");
-        if (usuario instanceof Administrador) {
-            Administrador administrador = (Administrador) usuario;
-            Salida.accion("Consultar si puede reservar para uso personal");
-            Salida.linea("Puede reservar: " + administrador.puedeReservar());
-            Salida.accion("Consultar si puede inscribirse a un partido");
-            Salida.linea("Puede inscribirse: " + administrador.puedeInscribirsePartido());
-        }
+        CanchaTenis cancha = new CanchaTenis("T-01", "Cancha de tenis 1", false);
+        club.getInstalaciones().add(cancha);
+        Salida.esperaRechazo("Ana intenta reservar una cancha de tenis para uso personal",
+                () -> club.reservar(DatosBase.ADMIN, cancha, LocalDate.now().plusDays(1),
+                        LocalTime.of(9, 0), LocalTime.of(10, 0), 2, Modalidad.SENCILLOS));
+        Salida.esperaRechazo("Ana intenta inscribirse como jugadora en un equipo",
+                () -> club.inscribirJugador(DatosBase.ADMIN, "Azules", "Defensa", 4));
 
         Salida.seccion("Estado despues");
         Salida.linea("Usuarios registrados: " + club.getUsuarios().size());

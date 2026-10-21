@@ -706,6 +706,21 @@ public class Club implements Serializable {
     }
 
     
+    /** Indica si el socio compro una bebida caliente en la cafeteria durante la ultima hora. */
+    private boolean tieneBebidaCaliente(Socio socio) {
+        java.time.LocalDateTime limite = java.time.LocalDateTime.now().minusHours(1);
+        for (Venta v : ventas) {
+            if (v instanceof VentaCafeteria && v.getComprador() == socio && v.getFecha().isAfter(limite)) {
+                for (LineaVenta linea : v.getLineas()) {
+                    if (linea.getProducto() instanceof Bebida && ((Bebida) linea.getProducto()).isCaliente()) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
     public Reserva reservar(int codigoSocio, Instalacion instalacion, LocalDate fecha,
             LocalTime horaInicio, LocalTime horaFin, int numeroJugadores, Modalidad modalidad) {
 
@@ -739,6 +754,13 @@ public class Club implements Serializable {
         }
 
         validarCupoInstalaciones(instalacion, fecha, horaInicio, horaFin);
+
+        boolean esTechadaDeRiesgo = instalacion.isTechada()
+                && (instalacion.getDisciplina() == Deporte.PADEL
+                || instalacion.getDisciplina() == Deporte.TENIS_DE_MESA);
+        if (esTechadaDeRiesgo && tieneBebidaCaliente((Socio) usuario)) {
+            throw new ReglaNegocioException("No se puede usar esta instalacion techada con una bebida caliente");
+        }
 
         Reserva reserva = new Reserva((Socio) usuario, instalacion, fecha,
                 horaInicio, horaFin, numeroJugadores, modalidad);
