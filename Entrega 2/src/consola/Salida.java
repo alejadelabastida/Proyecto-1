@@ -20,7 +20,6 @@ public class Salida {
         System.out.println("Accion: " + texto);
     }
 
-  
     public static void ok() {
         System.out.println("  Resultado: [OK]");
     }
@@ -40,4 +39,26 @@ public class Salida {
     public static void linea(String texto) {
         System.out.println("  " + texto);
     }
+    
+    public static void esperaOk(String texto, Runnable accion) {
+        accion(texto);
+        try {
+            accion.run();
+            ok();
+        } catch (ReglaNegocioException e) {
+            inesperado(e);
+        }
+    }
+
+    public static void esperaRechazo(String texto, Runnable accion) {
+        accion(texto);
+        try {
+            accion.run();
+            debiaRechazarse();
+        } catch (ReglaNegocioException e) {
+            rechazado(e);
+        }
+    }
+}
+
 }

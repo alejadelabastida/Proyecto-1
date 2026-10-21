@@ -19,7 +19,6 @@
 
 ## Participantes
 
-1. Daniel Casafranco
-2. Alejandra de la Bastida
-3. Juan Jose Castro
+1. Alejandra de la Bastida
+2. Juan Jose Castro
 

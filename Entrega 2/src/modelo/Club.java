@@ -605,10 +605,7 @@ public class Club implements Serializable {
     
         return usuario.consultarPerfil();
     }
-
-
-    //  PERSONA 2: individuales, tienda, cafeteria, inventario y ventas
-
+    
     public Reserva reservar(int codigoSocio, Instalacion instalacion, LocalDate fecha,
             LocalTime horaInicio, LocalTime horaFin, int numeroJugadores, Modalidad modalidad) {
         throw new UnsupportedOperationException("Pendiente: Persona 3");
@@ -624,14 +621,309 @@ public class Club implements Serializable {
         throw new UnsupportedOperationException("Pendiente: Persona 3");
     }
 
-    public VentaCafeteria comprarCafeteria(int codigoSocio, Map<Producto, Integer> productos,
-            double propina, int puntosAUsar) {
-        throw new UnsupportedOperationException("Pendiente: Persona 3");
+    //  PERSONA 2. B:tienda, cafeteria, inventario y ventas
+    
+    private static final String UBICACION_TIENDA = "Tienda";
+    private UbicacionInventario buscarUbicacion(String nombre) {
+        for (UbicacionInventario u : ubicaciones) {
+            if (u.getNombre().equalsIgnoreCase(nombre)) {
+                return u;
+            }
+        }
+        return null;
+    }
+    
+    private void exigirAdministrador(int codigo, String accion) {
+        if (!(buscarPorCodigo(codigo) instanceof Administrador)) {
+            throw new ReglaNegocioException("Solo el administrador puede " + accion);
+        }
+    }
+    
+    
+    private boolean enTechada(Socio socio) {
+        LocalDate hoy = LocalDate.now();
+        LocalTime ahora = LocalTime.now();
+        for (Instalacion i : instalaciones) {
+            boolean esDeRiesgo = i.isTechada()
+                    && (i.getDisciplina() == Deporte.PADEL || i.getDisciplina() == Deporte.TENIS_DE_MESA);
+            if (esDeRiesgo) {
+                for (Reserva r : i.getReservas()) {
+                    if (r.getSocio() == socio && r.getFecha().equals(hoy)
+                            && !ahora.isBefore(r.getHoraInicio()) && ahora.isBefore(r.getHoraFin())) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
 
+    private double descuento(Usuario comprador, String codigo) {
+        if (codigo == null || codigo.trim().isEmpty()) {
+            return 0;
+        }
+        for (Usuario u : usuarios) {
+            if (u instanceof Empleado && ((Empleado) u).getCodigoDescuento().equals(codigo)) {
+                return (u == comprador) ? 0.15 : 0.08;
+            }
+        }
+        throw new ReglaNegocioException("El codigo de descuento no existe");
+    }
+    
     public VentaTienda comprarTienda(int codigoComprador, Map<ArticuloTienda, Integer> articulos,
             String codigoDescuento) {
-        throw new UnsupportedOperationException("Pendiente: Persona 3");
+        Usuario comprador = buscarPorCodigo(codigoComprador);
+        if (!(comprador instanceof Socio) && !(comprador instanceof Empleado)) {
+            throw new ReglaNegocioException("Solo un socio o un empleado puede comprar en la tienda");
+        }
+        if (articulos == null || articulos.isEmpty()) {
+            throw new ReglaNegocioException("La compra no tiene articulos");
+        }
+        UbicacionInventario tienda = buscarUbicacion(UBICACION_TIENDA);
+        if (tienda == null) {
+            throw new ReglaNegocioException("No existe la ubicacion de inventario de la tienda");
+        }
+
+        for (Map.Entry<ArticuloTienda, Integer> e : articulos.entrySet()) {
+            if (e.getValue() <= 0) {
+                throw new ReglaNegocioException("La cantidad de " + e.getKey().getNombre() + " debe ser mayor que cero");
+            }
+            ExistenciaInventario existencia = tienda.buscarExistencia(e.getKey());
+            if (existencia == null || !existencia.hayStock(e.getValue())) {
+                throw new ReglaNegocioException("No hay stock suficiente de " + e.getKey().getNombre());
+            }
+        }
+
+        double porcentaje = descuento(comprador, codigoDescuento);
+        VentaTienda venta = new VentaTienda(comprador, articulos, porcentaje);
+        if (porcentaje > 0) {
+            venta.setCodigoDescuentoUsado(codigoDescuento);
+        }
+
+        for (Map.Entry<ArticuloTienda, Integer> e : articulos.entrySet()) {
+            tienda.buscarExistencia(e.getKey()).descontar(e.getValue());
+        }
+        if (comprador instanceof Socio) {
+            ((Socio) comprador).actualizarPuntos(venta.getPuntosGanados(), 0);
+        }
+        ventas.add(venta);
+        guardar();
+        return venta;
+    }
+    
+    
+    public VentaCafeteria comprarCafeteria(int codigoSocio, Map<Producto, Integer> productosComprados,
+            double propina, int puntosAUsar) {
+        Usuario usuario = buscarPorCodigo(codigoSocio);
+        if (!(usuario instanceof Socio)) {
+            throw new ReglaNegocioException("Solo un socio puede comprar en la cafeteria");
+        }
+        Socio socio = (Socio) usuario;
+        if (productosComprados == null || productosComprados.isEmpty()) {
+            throw new ReglaNegocioException("La compra no tiene productos");
+        }
+        if (propina < 0 || propina > 1) {
+            throw new ReglaNegocioException("La propina debe estar entre 0% y 100%");
+        }
+        if (puntosAUsar < 0) {
+            throw new ReglaNegocioException("Los puntos a usar no pueden ser negativos");
+        }
+
+        boolean estaEnTechada = enTechada(socio);
+        double subtotal = 0;
+        for (Map.Entry<Producto, Integer> e : productosComprados.entrySet()) {
+            Producto producto = e.getKey();
+            if (e.getValue() <= 0) {
+                throw new ReglaNegocioException("La cantidad de " + producto.getNombre() + " debe ser mayor que cero");
+            }
+            if (!productos.contains(producto)) {
+                throw new ReglaNegocioException(producto.getNombre() + " no esta registrado en el club");
+            }
+            if (producto instanceof ArticuloTienda) {
+                throw new ReglaNegocioException(producto.getNombre() + " es de la tienda, no de la cafeteria");
+            }
+            if (!producto.permitido(estaEnTechada)) {
+                throw new ReglaNegocioException("No se sirven bebidas calientes a un socio en una cancha techada de padel o tenis de mesa");
+            }
+            subtotal += producto.getPrecio() * e.getValue();
+        }
+        
+        if (!socio.tienePuntos(puntosAUsar)) {
+            throw new ReglaNegocioException("El socio no tiene suficientes puntos de fidelidad");
+        }
+        if (puntosAUsar > subtotal) {
+            throw new ReglaNegocioException("No se pueden usar mas puntos que el valor de la compra");
+        }
+
+        VentaCafeteria venta = new VentaCafeteria(socio, productosComprados, propina, puntosAUsar);
+        socio.actualizarPuntos(venta.getPuntosGanados(), puntosAUsar);
+        ventas.add(venta);
+        guardar();
+        return venta;
+    }
+    
+    
+    public List<Venta> consultarHistorialCompras(int codigoSocio) {
+        Usuario usuario = buscarPorCodigo(codigoSocio);
+        if (!(usuario instanceof Socio)) {
+            throw new ReglaNegocioException("El usuario no es un socio");
+        }
+        List<Venta> resultado = new ArrayList<>();
+        for (Venta v : ventas) {
+            if (v.getComprador() == usuario) {
+                resultado.add(v);
+            }
+        }
+        if (resultado.isEmpty()) {
+            throw new ReglaNegocioException("El socio no tiene compras registradas");
+        }
+        return resultado;
+    }
+    
+    public List<String> consultarInventario(int codigoAdministrador, String nombreUbicacion) {
+        exigirAdministrador(codigoAdministrador, "consultar el inventario");
+        List<String> lineas = new ArrayList<>();
+        for (UbicacionInventario u : ubicaciones) {
+            if (nombreUbicacion == null || u.getNombre().equalsIgnoreCase(nombreUbicacion)) {
+                for (ExistenciaInventario e : u.getExistencias()) {
+                    lineas.add(u.getNombre() + " | " + e.getProducto().getNombre() + " | " + e.getCantidad());
+                }
+            }
+        }
+        if (nombreUbicacion != null && buscarUbicacion(nombreUbicacion) == null) {
+            throw new ReglaNegocioException("No se encontro la ubicacion " + nombreUbicacion);
+        }
+        return sinVacio(lineas);
+    }
+    
+    public void reabastecer(int codigoAdministrador, ArticuloTienda articulo, int cantidad) {
+        exigirAdministrador(codigoAdministrador, "reabastecer el inventario");
+        if (cantidad <= 0) {
+            throw new ReglaNegocioException("La cantidad a reabastecer debe ser mayor que cero");
+        }
+        if (!productos.contains(articulo)) {
+            throw new ReglaNegocioException(articulo.getNombre() + " no esta registrado en el club");
+        }
+        UbicacionInventario tienda = buscarUbicacion(UBICACION_TIENDA);
+        if (tienda == null) {
+            throw new ReglaNegocioException("No existe la ubicacion de inventario de la tienda");
+        }
+        tienda.agregar(articulo, cantidad);
+        guardar();
+    }
+    
+    public void moverArticulo(int codigoAdministrador, Producto producto, String origen, String destino,
+            int cantidad) {
+        exigirAdministrador(codigoAdministrador, "mover articulos entre ubicaciones");
+        UbicacionInventario desde = buscarUbicacion(origen);
+        UbicacionInventario hacia = buscarUbicacion(destino);
+        if (desde == null || hacia == null) {
+            throw new ReglaNegocioException("La ubicacion de origen o de destino no existe");
+        }
+        if (desde == hacia) {
+            throw new ReglaNegocioException("El origen y el destino son la misma ubicacion");
+        }
+        if (cantidad <= 0) {
+            throw new ReglaNegocioException("La cantidad a mover debe ser mayor que cero");
+        }
+        ExistenciaInventario existencia = desde.buscarExistencia(producto);
+        if (existencia == null || !existencia.hayStock(cantidad)) {
+            throw new ReglaNegocioException("La ubicacion " + origen + " no tiene suficientes unidades de "
+                    + producto.getNombre());
+        }
+        existencia.descontar(cantidad);
+        hacia.agregar(producto, cantidad);
+        guardar();
+    }
+    
+    
+    public SugerenciaProducto sugerirProducto(int codigoEmpleado, String nombre, String descripcion) {
+        Empleado empleado = buscarEmpleado(codigoEmpleado);
+        if (empleado == null) {
+            throw new ReglaNegocioException("Solo un empleado puede sugerir productos");
+        }
+        if (nombre == null || nombre.trim().isEmpty()) {
+            throw new ReglaNegocioException("La sugerencia debe tener un nombre");
+        }
+        SugerenciaProducto sugerencia = new SugerenciaProducto(empleado, nombre, descripcion);
+        guardar();
+        return sugerencia;
+    }
+    
+    
+    public void aprobarSugerencia(int codigoAdministrador, SugerenciaProducto sugerencia) {
+        evaluarSugerencia(codigoAdministrador, sugerencia, true);
+    }
+    
+    public void rechazarSugerencia(int codigoAdministrador, SugerenciaProducto sugerencia) {
+        evaluarSugerencia(codigoAdministrador, sugerencia, false);
+    }
+
+    private void evaluarSugerencia(int codigoAdministrador, SugerenciaProducto sugerencia, boolean aprobar) {
+        exigirAdministrador(codigoAdministrador, "evaluar sugerencias de productos");
+        if (sugerencia.getEstado() != EstadoSolicitud.PENDIENTE) {
+            throw new ReglaNegocioException("La sugerencia ya fue evaluada");
+        }
+        if (aprobar) {
+            sugerencia.aprobar();
+        } else {
+            sugerencia.rechazar();
+        }
+        guardar();
+    }
+    
+    public List<SugerenciaProducto> consultarSugerencias(int codigoAdministrador) {
+        exigirAdministrador(codigoAdministrador, "consultar las sugerencias de productos");
+        List<SugerenciaProducto> resultado = new ArrayList<>();
+        for (Usuario u : usuarios) {
+            if (u instanceof Empleado) {
+                resultado.addAll(((Empleado) u).getSugerencias());
+            }
+        }
+        return resultado;
+    }
+    
+    
+    public List<String> reporteVentas(int codigoAdministrador, LocalDate desde, LocalDate hasta) {
+        exigirAdministrador(codigoAdministrador, "generar reportes de ventas");
+        validarPeriodo(desde, hasta);
+
+        int cantidadTienda = 0;
+        double totalTienda = 0;
+        int cantidadCafeteria = 0;
+        double totalCafeteria = 0;
+        for (Venta v : ventas) {
+            if (enPeriodo(v.getFecha().toLocalDate(), desde, hasta)) {
+                if (v instanceof VentaTienda) {
+                    cantidadTienda++;
+                    totalTienda += v.getTotal();
+                } else {
+                    cantidadCafeteria++;
+                    totalCafeteria += v.getTotal();
+                }
+            }
+        }
+        int cantidadMensualidades = 0;
+        double totalMensualidades = 0;
+        for (Usuario u : usuarios) {
+            if (u instanceof Socio) {
+                for (Mensualidad m : ((Socio) u).getMensualidades()) {
+                    if (enPeriodo(m.getFechaPago(), desde, hasta)) {
+                        cantidadMensualidades++;
+                        totalMensualidades += m.getValor();
+                    }
+                }
+            }
+        }
+
+        List<String> lineas = new ArrayList<>();
+        if (cantidadTienda + cantidadCafeteria + cantidadMensualidades > 0) {
+            lineas.add("Tienda | ventas: " + cantidadTienda + " | total: " + totalTienda);
+            lineas.add("Cafeteria | ventas: " + cantidadCafeteria + " | total: " + totalCafeteria);
+            lineas.add("Mensualidades | pagos: " + cantidadMensualidades + " | total: " + totalMensualidades);
+            lineas.add("TOTAL | " + (totalTienda + totalCafeteria + totalMensualidades));
+        }
+        return sinVacio(lineas);
     }
 
     //  PERSONA 2: entrenamientos
@@ -694,7 +986,7 @@ public class Club implements Serializable {
         }
         return resultado;
     }
-
+ 
 
     public Convocatoria consultarAsistencia(Socio socio, SesionEntrenamiento sesion) {
         Convocatoria convocatoria = sesion.buscarConvocatoria(socio);
@@ -851,7 +1143,6 @@ public class Club implements Serializable {
         }
         return sinVacio(lineas);
     }
-
 
     public List<String> reporteResultados(LocalDate desde, LocalDate hasta) {
         validarPeriodo(desde, hasta);
