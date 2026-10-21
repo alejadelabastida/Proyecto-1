@@ -1,9 +1,7 @@
 package consola;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import modelo.*;
 
@@ -18,6 +16,7 @@ public class Prueba3 {
             java.util.Scanner sc = new java.util.Scanner(System.in);
             if (sc.hasNextLine()) {
                 String elegida = sc.nextLine().trim();
+                sc.close();
                 if (!elegida.isEmpty()) {
                     carpeta = elegida;
                 }
@@ -39,7 +38,6 @@ public class Prueba3 {
         ejecutar(club);
         club.guardar();
 
-        // Comprobacion real: se crea otro Club leyendo el archivo, no se reutiliza el original.
         Club recuperado = new persistencia.Persistencia(carpeta).cargar();
         verificarPersistencia(recuperado);
         Salida.linea("Datos guardados en " + carpeta

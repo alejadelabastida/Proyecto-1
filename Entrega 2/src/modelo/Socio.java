@@ -5,7 +5,8 @@ import java.time.LocalDate;
 
 public class Socio extends Usuario {
 
-    private final LocalDate fechaNacimiento;
+	private static final long serialVersionUID = 1L;
+	private final LocalDate fechaNacimiento;
     private int puntosFidelidad;
     private Jugador jugadorDeportivo;
 

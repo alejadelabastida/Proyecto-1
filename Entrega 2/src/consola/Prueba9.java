@@ -21,6 +21,7 @@ public class Prueba9 {
         Scanner sc = new Scanner(System.in);
         System.out.print("Carpeta de datos (Enter = datos/prueba9): ");
         String carpeta = sc.nextLine().trim();
+        sc.close();
         if (carpeta.isEmpty()) {
             carpeta = "datos/prueba9";
         }

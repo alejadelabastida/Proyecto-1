@@ -13,6 +13,7 @@ public class Prueba10 {
             java.util.Scanner sc = new java.util.Scanner(System.in);
             if (sc.hasNextLine()) {
                 String elegida = sc.nextLine().trim();
+                sc.close();
                 if (!elegida.isEmpty()) {
                     carpeta = elegida;
                 }

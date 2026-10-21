@@ -17,6 +17,7 @@ public class Prueba4 {
             Scanner sc = new Scanner(System.in);
             if (sc.hasNextLine()) {
                 String elegida = sc.nextLine().trim();
+                sc.close();
                 if (!elegida.isEmpty()) {
                     carpeta = elegida;
                 }

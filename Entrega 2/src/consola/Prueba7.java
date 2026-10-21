@@ -12,7 +12,6 @@ import modelo.Club;
 import modelo.ExistenciaInventario;
 import modelo.Modalidad;
 import modelo.Producto;
-import modelo.Reserva;
 import modelo.Snack;
 import modelo.Socio;
 import modelo.UbicacionInventario;
@@ -26,6 +25,7 @@ public class Prueba7 {
         Scanner sc = new Scanner(System.in);
         System.out.print("Carpeta de datos (Enter = datos/prueba7): ");
         String carpeta = sc.nextLine().trim();
+        sc.close();
         if (carpeta.isEmpty()) {
             carpeta = "datos/prueba7";
         }
@@ -52,10 +52,9 @@ public class Prueba7 {
     }
 
     private static void ejecutar(Club club) {
-        Socio pedro = (Socio) DatosBase.usuario(club, DatosBase.SOCIO4);
         CanchaPadel padel = new CanchaPadel("P-01", "Cancha de padel techada 1", true);
         club.getInstalaciones().add(padel);
-        new Reserva(pedro, padel, LocalDate.now(), LocalTime.of(0, 0), LocalTime.of(23, 59), 4, Modalidad.DOBLES);
+        club.reservar(DatosBase.SOCIO4, padel, LocalDate.now(), LocalTime.of(0, 0), LocalTime.of(23, 59), 4, Modalidad.DOBLES);
 
         Salida.seccion("Estado antes");
         mostrarEstado(club);
