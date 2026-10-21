@@ -11,6 +11,16 @@ public abstract class Empleado extends Usuario {
     public String getCodigoDescuento() {
         return codigoDescuento;
     }
+    private final java.util.List<SugerenciaProducto> sugerencias = new java.util.ArrayList<>();
+
+    public void agregarSugerencia(SugerenciaProducto sugerencia) {
+        sugerencias.add(sugerencia);
+    }
+
+    public java.util.List<SugerenciaProducto> getSugerencias() {
+        return sugerencias;
+    }
+
     public void agregarTurno(Turno turno) {
         turnos.add(turno);
     }

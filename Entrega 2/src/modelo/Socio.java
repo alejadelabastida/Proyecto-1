@@ -76,6 +76,15 @@ public class Socio extends Usuario {
 
         puntosFidelidad += puntos;
     }
+    
+    public boolean tienePuntos(int puntos) {
+        return puntosFidelidad >= puntos;
+    }
+
+    public void actualizarPuntos(int ganados, int redimidos) {
+        puntosFidelidad += ganados - redimidos;
+    }
+
 
     public void agregarMensualidad(Mensualidad mensualidad) {
         mensualidades.add(mensualidad);

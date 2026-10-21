@@ -19,7 +19,6 @@ public class Persistencia {
         this.carpeta = carpeta;
     }
 
-  
     public boolean existe() {
         return new File(carpeta, ARCHIVO).exists();
     }
