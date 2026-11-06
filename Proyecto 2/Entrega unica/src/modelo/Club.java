@@ -4,6 +4,7 @@ import java.io.Serializable;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -605,12 +606,6 @@ public class Club implements Serializable {
     
         return usuario.consultarPerfil();
     }
-
-
-    // =====================================================================
-    //  PERSONA 3: individuales, tienda, cafeteria, inventario y ventas
-    // =====================================================================
-
     
     private void validarCupoInstalaciones(Instalacion instalacion,
             LocalDate fecha, LocalTime inicio, LocalTime fin) {
@@ -705,8 +700,6 @@ public class Club implements Serializable {
         }
     }
 
-    
-    /** Indica si el socio compro una bebida caliente en la cafeteria durante la ultima hora. */
     private boolean tieneBebidaCaliente(Socio socio) {
         java.time.LocalDateTime limite = java.time.LocalDateTime.now().minusHours(1);
         for (Venta v : ventas) {
@@ -1634,5 +1627,323 @@ public class Club implements Serializable {
             }
         }
         return sinVacio(lineas);
+    }
+    
+    public List<Torneo> getTorneos() {
+        if (torneos == null) {
+            torneos = new ArrayList<>();
+        }
+        return torneos;
+    }
+
+    public Estudiante registrarEstudiante(String nombre, String apellido, String login, String password,
+            String codigoEstudiantil) {
+        validarDatosDeRegistro(login, password);
+        Estudiante estudiante;
+        try {
+            estudiante = new Estudiante(siguienteCodigoUsuario(), nombre, apellido, login, password,
+                    codigoEstudiantil);
+        } catch (IllegalArgumentException e) {
+            throw new ReglaNegocioException(e.getMessage());
+        }
+        usuarios.add(estudiante);
+        guardar();
+        return estudiante;
+    }
+
+    public Externo registrarExterno(String nombre, String apellido, String login, String password,
+            String documento) {
+        validarDatosDeRegistro(login, password);
+        Externo externo;
+        try {
+            externo = new Externo(siguienteCodigoUsuario(), nombre, apellido, login, password, documento);
+        } catch (IllegalArgumentException e) {
+            throw new ReglaNegocioException(e.getMessage());
+        }
+        usuarios.add(externo);
+        guardar();
+        return externo;
+    }
+
+    private void validarDatosDeRegistro(String login, String password) {
+        if (login == null || login.isBlank()) {
+            throw new ReglaNegocioException("El usuario es obligatorio");
+        }
+        if (password == null || password.length() < 4) {
+            throw new ReglaNegocioException("La clave debe tener al menos 4 caracteres");
+        }
+        for (Usuario u : usuarios) {
+            if (u.getLogin().equals(login)) {
+                throw new ReglaNegocioException("Ese usuario ya existe");
+            }
+        }
+    }
+
+    private int siguienteCodigoUsuario() {
+        int mayor = 0;
+        for (Usuario u : usuarios) {
+            if (u.getCodigo() > mayor) {
+                mayor = u.getCodigo();
+            }
+        }
+        return mayor + 1;
+    }
+
+    public int buscarCodigoPorLogin(String login) {
+        for (Usuario u : usuarios) {
+            if (u.getLogin().equals(login)) {
+                return u.getCodigo();
+            }
+        }
+        throw new ReglaNegocioException("No existe un usuario con ese nombre de usuario");
+    }
+
+    public InscripcionTorneo inscribirJugadorEnTorneo(int codigoUsuario, Torneo torneo) {
+        validarTorneoAbierto(torneo);
+        Usuario usuario = validarParticipante(codigoUsuario, torneo);
+        if (torneo.getModalidad() != Modalidad.SENCILLOS) {
+            throw new ReglaNegocioException("Este torneo es de dobles: se inscribe una pareja");
+        }
+
+        TipoCupo cupo = torneo.asignarCupo(esMejorRanking(usuario, torneo, 1));
+        List<Usuario> participantes = new ArrayList<>();
+        participantes.add(usuario);
+        InscripcionTorneo inscripcion = new InscripcionTorneo(torneo, participantes, cupo);
+        guardar();
+        return inscripcion;
+    }
+
+    public InscripcionTorneo inscribirParejaEnTorneo(int codigoUsuario1, int codigoUsuario2, Torneo torneo) {
+        validarTorneoAbierto(torneo);
+        if (codigoUsuario1 == codigoUsuario2) {
+            throw new ReglaNegocioException("La pareja necesita dos personas distintas");
+        }
+        Usuario usuario1 = validarParticipante(codigoUsuario1, torneo);
+        Usuario usuario2 = validarParticipante(codigoUsuario2, torneo);
+        if (torneo.getModalidad() != Modalidad.DOBLES) {
+            throw new ReglaNegocioException("Este torneo es de sencillos: se inscribe una persona");
+        }
+
+        boolean mejor = esMejorRanking(usuario1, torneo, 2) && esMejorRanking(usuario2, torneo, 2);
+        TipoCupo cupo = torneo.asignarCupo(mejor);
+        List<Usuario> participantes = new ArrayList<>();
+        participantes.add(usuario1);
+        participantes.add(usuario2);
+        InscripcionTorneo inscripcion = new InscripcionTorneo(torneo, participantes, cupo);
+        guardar();
+        return inscripcion;
+    }
+
+    public InscripcionTorneo inscribirEquipoEnTorneo(int codigoEntrenador, Equipo equipo, Torneo torneo) {
+        validarTorneoAbierto(torneo);
+        if (buscarEntrenador(codigoEntrenador) == null) {
+            throw new ReglaNegocioException("Solo un entrenador puede inscribir equipos en un torneo");
+        }
+        if (torneo.esIndividual()) {
+            throw new ReglaNegocioException("Este torneo es individual: no se inscriben equipos");
+        }
+        if (equipo == null || !equipos.contains(equipo)) {
+            throw new ReglaNegocioException("El equipo no esta registrado");
+        }
+        if (equipo.getDeporte() != torneo.getDeporte()) {
+            throw new ReglaNegocioException("El equipo es de otro deporte");
+        }
+        if (equipo.getCategoria() != torneo.getCategoria()) {
+            throw new ReglaNegocioException("El equipo es de otra categoria");
+        }
+        if (contarHabilitados(equipo) < minimoJugadores(equipo.getDeporte())) {
+            throw new ReglaNegocioException("El equipo no esta completo: faltan jugadores habilitados");
+        }
+        if (torneo.buscarInscripcionDe(equipo) != null) {
+            throw new ReglaNegocioException("El equipo ya esta inscrito en este torneo");
+        }
+
+        TipoCupo cupo = torneo.asignarCupo(esMejorEquipo(equipo, torneo));
+        InscripcionTorneo inscripcion = new InscripcionTorneo(torneo, equipo, cupo);
+        guardar();
+        return inscripcion;
+    }
+
+    public void retirarDeTorneo(int codigoUsuario, Torneo torneo) {
+        validarTorneoAbierto(torneo);
+        Usuario usuario = buscarPorCodigo(codigoUsuario);
+        if (usuario == null) {
+            throw new ReglaNegocioException("El usuario no existe");
+        }
+        InscripcionTorneo inscripcion = torneo.buscarInscripcionDe(usuario);
+        if (inscripcion == null) {
+            throw new ReglaNegocioException("El usuario no esta inscrito en este torneo");
+        }
+        torneo.quitarInscripcion(inscripcion);
+        guardar();
+    }
+
+    public void retirarEquipoDeTorneo(int codigoEntrenador, Equipo equipo, Torneo torneo) {
+        validarTorneoAbierto(torneo);
+        if (buscarEntrenador(codigoEntrenador) == null) {
+            throw new ReglaNegocioException("Solo un entrenador puede retirar equipos de un torneo");
+        }
+        InscripcionTorneo inscripcion = torneo.buscarInscripcionDe(equipo);
+        if (inscripcion == null) {
+            throw new ReglaNegocioException("El equipo no esta inscrito en este torneo");
+        }
+        torneo.quitarInscripcion(inscripcion);
+        guardar();
+    }
+    
+    public void liberarCuposPreferenciales(int codigoAdministrador, Torneo torneo) {
+        exigirAdministrador(codigoAdministrador, "liberar cupos preferenciales");
+        validarTorneoAbierto(torneo);
+        torneo.liberarCuposPreferenciales();
+        guardar();
+    }
+
+    public List<String> consultarTorneos() {
+        List<String> lineas = new ArrayList<>();
+        for (Torneo torneo : getTorneos()) {
+            lineas.add(torneo.toString());
+        }
+        if (lineas.isEmpty()) {
+            throw new ReglaNegocioException("No hay torneos registrados");
+        }
+        return lineas;
+    }
+
+    public List<String> consultarInscripciones(Torneo torneo) {
+        if (torneo == null || !getTorneos().contains(torneo)) {
+            throw new ReglaNegocioException("El torneo no existe");
+        }
+        List<String> lineas = new ArrayList<>();
+        for (InscripcionTorneo inscripcion : torneo.getInscripciones()) {
+            lineas.add(inscripcion.toString());
+        }
+        return lineas;
+    }
+
+    public List<InscripcionTorneo> consultarMisInscripciones(int codigoUsuario) {
+        Usuario usuario = buscarPorCodigo(codigoUsuario);
+        if (usuario == null) {
+            throw new ReglaNegocioException("El usuario no existe");
+        }
+        List<InscripcionTorneo> resultado = new ArrayList<>();
+        for (Torneo torneo : getTorneos()) {
+            InscripcionTorneo inscripcion = torneo.buscarInscripcionDe(usuario);
+            if (inscripcion != null) {
+                resultado.add(inscripcion);
+            }
+        }
+        return resultado;
+    }
+
+    private void validarTorneoAbierto(Torneo torneo) {
+        if (torneo == null || !getTorneos().contains(torneo)) {
+            throw new ReglaNegocioException("El torneo no existe");
+        }
+        if (!torneo.admiteCambios()) {
+            throw new ReglaNegocioException("El torneo ya inicio: no se permiten inscripciones ni retiros");
+        }
+    }
+
+    private Usuario validarParticipante(int codigoUsuario, Torneo torneo) {
+        Usuario usuario = buscarPorCodigo(codigoUsuario);
+        if (usuario == null) {
+            throw new ReglaNegocioException("El usuario no existe");
+        }
+        if (usuario instanceof Administrador) {
+            throw new ReglaNegocioException("El administrador no puede participar en torneos");
+        }
+        if (torneo.esDeConjunto()) {
+            throw new ReglaNegocioException("Este torneo es de equipos: lo inscribe un entrenador");
+        }
+        if (torneo.buscarInscripcionDe(usuario) != null) {
+            throw new ReglaNegocioException("Ya esta inscrito en este torneo");
+        }
+        if (usuario instanceof Socio) {
+            InscripcionDisciplina disciplina = buscarDisciplina((Socio) usuario, torneo.getDeporte());
+            if (disciplina == null || disciplina.getNivel() != torneo.getNivel()) {
+                throw new ReglaNegocioException("El socio debe estar inscrito en " + torneo.getDeporte()
+                        + " con nivel " + torneo.getNivel());
+            }
+        }
+        if (usuario instanceof Empleado && estaDeTurno((Empleado) usuario, torneo)) {
+            throw new ReglaNegocioException("El empleado esta de turno el dia del torneo ("
+                    + torneo.getDiaSemana() + ")");
+        }
+        return usuario;
+    }
+
+    private boolean estaDeTurno(Empleado empleado, Torneo torneo) {
+        for (Turno turno : empleado.getTurnos()) {
+            if (turno.getDiaSemana().equalsIgnoreCase(torneo.getDiaSemana())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private InscripcionDisciplina buscarDisciplina(Socio socio, Deporte deporte) {
+        for (InscripcionDisciplina inscripcion : socio.getInscripciones()) {
+            if (inscripcion.getDisciplina() == deporte) {
+                return inscripcion;
+            }
+        }
+        return null;
+    }
+
+    private boolean esMejorRanking(Usuario usuario, Torneo torneo, int integrantes) {
+        if (!(usuario instanceof Socio)) {
+            return false;
+        }
+        InscripcionDisciplina propia = buscarDisciplina((Socio) usuario, torneo.getDeporte());
+        if (propia == null || propia.getHistorial().isEmpty()) {
+            return false;
+        }
+
+        List<Integer> puntajes = new ArrayList<>();
+        for (Usuario otro : usuarios) {
+            if (otro instanceof Socio) {
+                InscripcionDisciplina d = buscarDisciplina((Socio) otro, torneo.getDeporte());
+                if (d != null && d.getNivel() == torneo.getNivel()) {
+                    puntajes.add(d.getPuntajeRanking());
+                }
+            }
+        }
+        Collections.sort(puntajes, Collections.reverseOrder());
+        int puestos = Math.min(torneo.cuposPreferenciales() * integrantes, puntajes.size());
+        int puntajeDeCorte = puntajes.get(puestos - 1);
+        return propia.getPuntajeRanking() >= puntajeDeCorte;
+    }
+
+    private boolean esMejorEquipo(Equipo equipo, Torneo torneo) {
+        int victorias = contarVictorias(equipo);
+        if (victorias == 0) {
+            return false;
+        }
+        List<Integer> todas = new ArrayList<>();
+        for (Equipo otro : equipos) {
+            if (otro.getDeporte() == torneo.getDeporte() && otro.getCategoria() == torneo.getCategoria()) {
+                todas.add(contarVictorias(otro));
+            }
+        }
+        Collections.sort(todas, Collections.reverseOrder());
+        int puestos = Math.min(torneo.cuposPreferenciales(), todas.size());
+        int corte = todas.get(puestos - 1);
+        return victorias >= corte;
+    }
+
+    private int contarVictorias(Equipo equipo) {
+        int victorias = 0;
+        for (Partido partido : partidos) {
+            if (partido instanceof PartidoEquipo && ((PartidoEquipo) partido).tieneResultado()) {
+                PartidoEquipo p = (PartidoEquipo) partido;
+                if (p.getEquipo1() == equipo && p.getMarcadorEquipo1() > p.getMarcadorEquipo2()) {
+                    victorias++;
+                }
+                if (p.getEquipo2() == equipo && p.getMarcadorEquipo2() > p.getMarcadorEquipo1()) {
+                    victorias++;
+                }
+            }
+        }
+        return victorias;
     }
 }
