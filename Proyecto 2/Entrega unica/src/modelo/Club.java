@@ -26,6 +26,7 @@ public class Club implements Serializable {
     private List<UbicacionInventario> ubicaciones;
     private List<ReglaDeporte> reglas;
     private List<SolicitudCambioTurno> solicitudes;
+    private List<Torneo> torneos;
 
     private transient Persistencia persistencia;
 
