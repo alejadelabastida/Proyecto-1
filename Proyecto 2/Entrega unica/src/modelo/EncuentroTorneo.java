@@ -40,4 +40,17 @@ public class EncuentroTorneo implements Serializable {
 	public boolean isJugado() {
 		return jugado;
 	}
+	public void registrarResultado(int marcadorLocal, int marcadorVisitante) throws ReglaNegocioException {
+        if (this.jugado) {
+            throw new ReglaNegocioException("El encuentro ya tiene resultado");
+        }
+        
+        if (marcadorLocal < 0 || marcadorVisitante < 0) {
+            throw new ReglaNegocioException("Los marcadores no pueden ser negativos");
+        }
+        
+        this.marcadorLocal = marcadorLocal;
+        this.marcadorVisitante = marcadorVisitante;
+        this.jugado = true;
+    } 
 }
