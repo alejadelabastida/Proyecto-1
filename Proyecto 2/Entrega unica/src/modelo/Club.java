@@ -1972,6 +1972,33 @@ public class Club implements Serializable {
 
         return nuevoTorneo;
     }
+    public void iniciarTorneo(int codigoAdministrador, Torneo torneo) {
+        exigirAdministrador(codigoAdministrador, "iniciar torneos");
+
+        validarTorneoAbierto(torneo);
+
+        if (torneo.cuposOcupados() < 2) {
+            throw new ReglaNegocioException("No se puede iniciar el torneo con menos de 2 participantes.");
+        }
+
+        torneo.iniciar();
+
+        guardar();
+    }
+
+public void finalizarTorneo(int codigoAdministrador, Torneo torneo) throws ReglaNegocioException {
+    exigirAdministrador(codigoAdministrador, "finalizar torneos");
+    
+    if (torneo == null || !getTorneos().contains(torneo)) {
+        throw new ReglaNegocioException("El torneo no existe en el club.");
+    }
+    
+    torneo.finalizar();
+    
+    guardar();
 }
+}
+
+    
 
 

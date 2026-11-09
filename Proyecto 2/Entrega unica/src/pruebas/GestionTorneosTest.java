@@ -13,9 +13,11 @@ import consola.DatosBase;
 import modelo.Club;
 import modelo.Deporte;
 import modelo.EstadoTorneo;
+import modelo.InscripcionDisciplina;
 import modelo.Modalidad;
 import modelo.Nivel;
 import modelo.ReglaNegocioException;
+import modelo.Socio;
 import modelo.TipoTorneo;
 import modelo.Torneo;
 
@@ -109,18 +111,37 @@ class GestionTorneosTest {
     // =================================================================
 
     @Test
-    void iniciarTorneoLoPasaAEnCursoYBloqueaInscripciones() {
-        fail("TODO");
+    void iniciarTorneoLoPasaAEnCursoYBloqueaInscripciones()  {
+        
+        new InscripcionDisciplina((Socio) DatosBase.usuario(club, DatosBase.SOCIO1), Deporte.TENIS, Nivel.INTERMEDIO);
+        new InscripcionDisciplina((Socio) DatosBase.usuario(club, DatosBase.SOCIO2), Deporte.TENIS, Nivel.INTERMEDIO);
+        club.inscribirJugadorEnTorneo(DatosBase.SOCIO1, tenisCompetitivo);
+        club.inscribirJugadorEnTorneo(DatosBase.SOCIO2, tenisCompetitivo);
+
+        
+        club.iniciarTorneo(DatosBase.ADMIN, tenisCompetitivo);
+
+        
+        assertEquals(EstadoTorneo.EN_CURSO, tenisCompetitivo.getEstado());
+        assertThrows(ReglaNegocioException.class, () -> {
+            club.inscribirJugadorEnTorneo(DatosBase.SOCIO3, tenisCompetitivo);
+        });
     }
 
     @Test
     void noSePuedeIniciarTorneoConMenosDeDosParticipantes() {
-        fail("TODO: regla de diseno del grupo, documentarla en la HU");
+    	   assertThrows(ReglaNegocioException.class, () -> {
+    	       club.iniciarTorneo(DatosBase.ADMIN, tenisCompetitivo);
+           });
     }
 
     @Test
     void noSePuedeFinalizarTorneoQueNoHaIniciado() {
-        fail("TODO");
+        // Dado un torneo ABIERTO que nunca se inicio
+        // Cuando / Entonces el admin intenta finalizarlo, se lanza ReglaNegocioException
+        assertThrows(ReglaNegocioException.class, () -> {
+            club.finalizarTorneo(DatosBase.ADMIN, tenisCompetitivo);
+        });
     }
 
     // =================================================================
