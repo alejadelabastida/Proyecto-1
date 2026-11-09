@@ -1650,6 +1650,7 @@ public class Club implements Serializable {
         usuarios.add(estudiante);
         guardar();
         return estudiante;
+        
     }
 
     public Externo registrarExterno(String nombre, String apellido, String login, String password,
@@ -1947,4 +1948,30 @@ public class Club implements Serializable {
         }
         return victorias;
     }
+    public Torneo crearTorneo(int codigoAdministrador, String nombre, TipoTorneo tipo, Deporte deporte,
+            Categoria categoria, Nivel nivel, Modalidad modalidad,
+            int cupos, double tarifa, LocalDate fecha) {
+
+        exigirAdministrador(codigoAdministrador, "crear torneos");
+
+        for (Torneo torneoExistente : getTorneos()) {
+            if (torneoExistente.getNombre().equalsIgnoreCase(nombre)) {
+                throw new ReglaNegocioException("Ya existe un torneo registrado con el nombre: " + nombre);
+            }
+        }
+
+        Torneo nuevoTorneo;
+        try {
+            nuevoTorneo = new Torneo(nombre, tipo, deporte, categoria, nivel, modalidad, cupos, tarifa, fecha);
+        } catch (IllegalArgumentException e) {
+            throw new ReglaNegocioException(e.getMessage());
+        }
+
+        getTorneos().add(nuevoTorneo);
+        guardar();
+
+        return nuevoTorneo;
+    }
 }
+
+
