@@ -243,6 +243,17 @@ public class Torneo implements Serializable {
         });
         return tabla;
     }
+    public double premioPara(int posicion) {
+        if (posicion == 1) {
+            return totalRecaudado() * 0.60;
+        } else if (posicion == 2) {
+            return totalRecaudado() * 0.30;
+        } else if (posicion == 3) {
+            return totalRecaudado() * 0.10;
+        } else {
+            return 0.0;
+        }
+    }
     public String getDiaSemana() {
         switch (fecha.getDayOfWeek()) {
             case MONDAY: return "LUNES";
