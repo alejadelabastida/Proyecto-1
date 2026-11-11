@@ -2036,6 +2036,46 @@ throw new ReglaNegocioException("El encuentro no pertenece a este torneo.");
 encuentro.registrarResultado(marcadorLocal, marcadorVisitante);
 
 guardar();
+}   
+public List<Torneo> consultarTorneosPorEstado(EstadoTorneo estado) {
+    List<Torneo> resultado = new ArrayList<>();
+    for (Torneo torneo : getTorneos()) {
+        if (torneo.getEstado() == estado) {
+            resultado.add(torneo);
+        }
+    }
+    return resultado;
+}
+public List<String> consultarHistorialTorneo(Torneo torneo) throws ReglaNegocioException {
+    if (torneo == null || !getTorneos().contains(torneo)) {
+        throw new ReglaNegocioException("El torneo no existe en el club.");
+    }
+
+    List<String> lineas = new ArrayList<>();
+    lineas.add("Torneo: " + torneo);
+
+    lineas.add("Participantes:");
+    for (InscripcionTorneo i : torneo.getInscripciones()) {
+        lineas.add(" - " + i.getNombreParticipantes());
+    }
+
+    lineas.add("Encuentros:");
+    for (EncuentroTorneo e : torneo.getEncuentros()) {
+        if (e.isJugado()) {
+            lineas.add(e.getLocal().getNombreParticipantes() + " " + e.getMarcadorLocal() + " - " + e.getMarcadorVisitante() + " " + e.getVisitante().getNombreParticipantes());
+        } else {
+            lineas.add(e.getLocal().getNombreParticipantes() + " vs " + e.getVisitante().getNombreParticipantes());
+        }
+    }
+
+    lineas.add("Posiciones:");
+    List<InscripcionTorneo> posiciones = torneo.getPosiciones();
+    for (int i = 0; i < posiciones.size(); i++) {
+        InscripcionTorneo inscripcion = posiciones.get(i);
+        lineas.add((i + 1) + ". " + inscripcion.getNombreParticipantes() + " - " + torneo.puntosDe(inscripcion) + " pts");
+    }
+
+    return lineas;
 }
 }
 

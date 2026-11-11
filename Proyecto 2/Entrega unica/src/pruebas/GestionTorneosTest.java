@@ -3,9 +3,10 @@ package pruebas;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.LocalDate;
+import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -223,7 +224,16 @@ class GestionTorneosTest {
     // =================================================================
 
     @Test
-    void historialSeConsultaAunqueElTorneoEsteFinalizado() {
-        fail("TODO");
-    }
-}
+    void historialSeConsultaAunqueElTorneoEsteFinalizado()  {
+        iniciarCopaTenisConDosSocios();
+        EncuentroTorneo partido = tenisCompetitivo.getEncuentros().get(0);
+        club.registrarResultado(DatosBase.ADMIN, tenisCompetitivo, partido, 2, 0);
+        club.finalizarTorneo(DatosBase.ADMIN, tenisCompetitivo);
+
+        List<String> historial = club.consultarHistorialTorneo(tenisCompetitivo);
+
+        // 
+        assertTrue(historial.get(0).contains("FINALIZADO"));
+
+        assertTrue(historial.contains("Posiciones:"));
+    }}
