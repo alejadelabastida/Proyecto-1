@@ -1,6 +1,7 @@
 package pruebas;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -10,6 +11,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import consola.DatosBase;
+import modelo.Bono;
 import modelo.Club;
 import modelo.Deporte;
 import modelo.EncuentroTorneo;
@@ -21,6 +23,8 @@ import modelo.ReglaNegocioException;
 import modelo.Socio;
 import modelo.TipoTorneo;
 import modelo.Torneo;
+import modelo.Usuario;
+
 
 /**
  * Pruebas unitarias de GESTION DE TORNEOS (Proyecto 2 - Persona 1).
@@ -168,19 +172,52 @@ class GestionTorneosTest {
 
     @Test
     void premioCompetitivoSeCalculaSobreElTotalRecaudado() {
-        fail("TODO: usar la regla de reparto que defina el grupo");
+        iniciarCopaTenisConDosSocios();
+        EncuentroTorneo partido = tenisCompetitivo.getEncuentros().get(0);
+        Usuario ganador = partido.getLocal().getParticipantes().get(0);
+        Usuario segundo = partido.getVisitante().getParticipantes().get(0);
+
+        club.registrarResultado(DatosBase.ADMIN, tenisCompetitivo, partido, 2, 0);
+        club.finalizarTorneo(DatosBase.ADMIN, tenisCompetitivo);
+
+        assertEquals(36000.0, tenisCompetitivo.premioEfectivoDe(ganador));
+        assertEquals(18000.0, tenisCompetitivo.premioEfectivoDe(segundo));
     }
 
     @Test
     void empleadoGanadorDeCompetitivoNoRecibePremioEnEfectivo() {
-        fail("TODO");
+        new InscripcionDisciplina((Socio) DatosBase.usuario(club, DatosBase.SOCIO1), Deporte.TENIS, Nivel.INTERMEDIO);
+        club.inscribirJugadorEnTorneo(DatosBase.ENTRENADOR1, tenisCompetitivo);
+        club.inscribirJugadorEnTorneo(DatosBase.SOCIO1, tenisCompetitivo);
+        club.iniciarTorneo(DatosBase.ADMIN, tenisCompetitivo);
+        EncuentroTorneo partido = tenisCompetitivo.getEncuentros().get(0);
+        Usuario empleado = DatosBase.usuario(club, DatosBase.ENTRENADOR1);
+
+        club.registrarResultado(DatosBase.ADMIN, tenisCompetitivo, partido, 2, 0);
+        club.finalizarTorneo(DatosBase.ADMIN, tenisCompetitivo);
+
+        assertEquals(0.0, tenisCompetitivo.premioEfectivoDe(empleado));
     }
 
     @Test
     void ganadorDeRecreativoRecibeUnBonoSinRedimir() {
-        fail("TODO");
-    }
+        Torneo amistoso = club.crearTorneo(DatosBase.ADMIN, "Tenis Amistoso", TipoTorneo.RECREATIVO, Deporte.TENIS,
+                null, Nivel.INTERMEDIO, Modalidad.SENCILLOS, 8, 0, LocalDate.now().plusDays(14));
+        new InscripcionDisciplina((Socio) DatosBase.usuario(club, DatosBase.SOCIO1), Deporte.TENIS, Nivel.INTERMEDIO);
+        new InscripcionDisciplina((Socio) DatosBase.usuario(club, DatosBase.SOCIO2), Deporte.TENIS, Nivel.INTERMEDIO);
+        club.inscribirJugadorEnTorneo(DatosBase.SOCIO1, amistoso);
+        club.inscribirJugadorEnTorneo(DatosBase.SOCIO2, amistoso);
+        club.iniciarTorneo(DatosBase.ADMIN, amistoso);
+        EncuentroTorneo partido = amistoso.getEncuentros().get(0);
 
+        club.registrarResultado(DatosBase.ADMIN, amistoso, partido, 2, 0);
+        club.finalizarTorneo(DatosBase.ADMIN, amistoso);
+
+        assertEquals(1, club.getBonos().size());
+        Bono bono = club.getBonos().get(0);
+        assertFalse(bono.isRedimido());
+        assertEquals(partido.getLocal().getParticipantes().get(0), bono.getDueno());
+    }
     // =================================================================
     //  HU: Historial
     // =================================================================
