@@ -21,7 +21,7 @@ public class Torneo implements Serializable {
     private EstadoTorneo estado;
     private boolean preferencialesLiberados;
     private final List<InscripcionTorneo> inscripciones = new ArrayList<>();
-
+    private List<EncuentroTorneo> encuentros = new ArrayList<>();
     public Torneo(String nombre, TipoTorneo tipo, Deporte deporte, Categoria categoria, Nivel nivel,
             Modalidad modalidad, int cupos, double tarifa, LocalDate fecha) {
         if (nombre == null || nombre.isBlank() || tipo == null || deporte == null || fecha == null) {
@@ -177,6 +177,7 @@ public class Torneo implements Serializable {
         }
         preferencialesLiberados = true;
         estado = EstadoTorneo.EN_CURSO;
+        generarEncuentros();
     }
 
     public void finalizar() {
@@ -185,7 +186,16 @@ public class Torneo implements Serializable {
         }
         estado = EstadoTorneo.FINALIZADO;
     }
-
+    private void generarEncuentros() {
+        if (encuentros == null) {
+            encuentros = new ArrayList<>();
+        }
+        for (int i = 0; i < inscripciones.size(); i++) {
+            for (int j = i + 1; j < inscripciones.size(); j++) {
+                encuentros.add(new EncuentroTorneo(inscripciones.get(i), inscripciones.get(j)));
+            }
+        }
+    }
     public String getDiaSemana() {
         switch (fecha.getDayOfWeek()) {
             case MONDAY: return "LUNES";
@@ -209,7 +219,13 @@ public class Torneo implements Serializable {
     public LocalDate getFecha() { return fecha; }
     public EstadoTorneo getEstado() { return estado; }
     public List<InscripcionTorneo> getInscripciones() { return new ArrayList<>(inscripciones); }
-
+    public List<EncuentroTorneo> getEncuentros() {
+        if (encuentros == null) {
+            encuentros = new ArrayList<>();
+        }
+        return new ArrayList<>(encuentros);
+    
+    }  
     @Override
     public String toString() {
         String categoriaONivel = esDeConjunto() ? "categoria " + categoria

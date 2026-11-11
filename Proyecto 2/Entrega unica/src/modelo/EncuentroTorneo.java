@@ -52,5 +52,18 @@ public class EncuentroTorneo implements Serializable {
         this.marcadorLocal = marcadorLocal;
         this.marcadorVisitante = marcadorVisitante;
         this.jugado = true;
-    } 
+        }
+    
+    public InscripcionTorneo getGanador() {
+        if (!this.jugado) {
+            throw new ReglaNegocioException("El encuentro todavia no tiene resultado");
+        }
+        if (this.marcadorLocal > this.marcadorVisitante) {
+            return this.local;
+        } else if (this.marcadorLocal < this.marcadorVisitante) {
+            return this.visitante;
+        } else {
+            return null;
+        }
+    }
 }
