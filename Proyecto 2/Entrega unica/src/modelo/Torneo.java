@@ -195,6 +195,53 @@ public class Torneo implements Serializable {
                 encuentros.add(new EncuentroTorneo(inscripciones.get(i), inscripciones.get(j)));
             }
         }
+
+    }
+    public int puntosDe(InscripcionTorneo participante) {
+        int puntos = 0;
+        for (EncuentroTorneo encuentro : getEncuentros()) {
+            if (!encuentro.isJugado()) {
+                continue;
+            }
+            if (!encuentro.getLocal().equals(participante) && !encuentro.getVisitante().equals(participante)) {
+                continue;
+            }
+            try {
+                if (participante.equals(encuentro.getGanador())) {
+                    puntos += 3;
+                } else if (encuentro.getGanador() == null) {
+                    puntos += 1;
+                }
+            } catch (ReglaNegocioException e) {
+            }
+        }
+        return puntos;
+    }
+    public int diferenciaDe(InscripcionTorneo participante) {
+        int diferencia = 0;
+        for (EncuentroTorneo encuentro : getEncuentros()) {
+            if (!encuentro.isJugado()) {
+                continue;
+            }
+            if (participante.equals(encuentro.getLocal())) {
+                diferencia += (encuentro.getMarcadorLocal() - encuentro.getMarcadorVisitante());
+            } else if (participante.equals(encuentro.getVisitante())) {
+                diferencia += (encuentro.getMarcadorVisitante() - encuentro.getMarcadorLocal());
+            }
+        }
+        return diferencia;}
+
+    public List<InscripcionTorneo> getPosiciones() {
+        List<InscripcionTorneo> tabla = new ArrayList<>(inscripciones);
+        tabla.sort((a, b) -> {
+            int puntosA = puntosDe(a);
+            int puntosB = puntosDe(b);
+            if (puntosA != puntosB) {
+                return Integer.compare(puntosB, puntosA);
+            }
+            return Integer.compare(diferenciaDe(b), diferenciaDe(a));
+        });
+        return tabla;
     }
     public String getDiaSemana() {
         switch (fecha.getDayOfWeek()) {
