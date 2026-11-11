@@ -7,11 +7,16 @@ import java.util.List;
 import java.util.Scanner;
 
 import modelo.Administrador;
+import modelo.Categoria;
 import modelo.Club;
+import modelo.Deporte;
 import modelo.EncuentroTorneo;
 import modelo.EstadoTorneo;
 import modelo.InscripcionTorneo;
+import modelo.Modalidad;
+import modelo.Nivel;
 import modelo.ReglaNegocioException;
+import modelo.TipoTorneo;
 import modelo.Torneo;
 import modelo.Usuario;
 import persistencia.Persistencia;
@@ -141,7 +146,36 @@ public class ConsolaAdministrador {
     }
 
     private void crearTorneo() {
-        System.out.println("Pendiente de implementar.");
+        String nombre = entrada.leerTexto("Nombre del torneo");
+        TipoTorneo tipo = elegirValor("Tipo", TipoTorneo.values());
+        Deporte deporte = elegirValor("Deporte", Deporte.values());
+
+        Categoria categoria = null;
+        Nivel nivel = null;
+        Modalidad modalidad = null;
+
+        if (deporte == Deporte.FUTBOL || deporte == Deporte.BALONCESTO || deporte == Deporte.VOLEIBOL) {
+            categoria = elegirValor("Categoria", Categoria.values());
+        } else {
+            nivel = elegirValor("Nivel", Nivel.values());
+            modalidad = elegirValor("Modalidad", Modalidad.values());
+        }
+
+        int cupos = entrada.leerEntero("Cupos", 1, 64);
+        double tarifa = 0;
+        if (tipo == TipoTorneo.COMPETITIVO) {
+            tarifa = leerDinero("Tarifa de inscripcion");
+        }
+
+        LocalDate fecha = leerFecha("Fecha del torneo");
+
+        try {
+            Torneo nuevo = club.crearTorneo(administrador.getCodigo(), nombre, tipo, deporte, categoria, nivel, modalidad, cupos, tarifa, fecha);
+            System.out.println("LISTO: " + nuevo);
+            System.out.println("Cupos preferenciales: " + nuevo.cuposPreferenciales());
+        } catch (ReglaNegocioException e) {
+            System.out.println("ERROR: " + e.getMessage());
+        }
     }
 
     private void verTorneos() {
