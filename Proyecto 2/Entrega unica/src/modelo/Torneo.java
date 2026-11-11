@@ -3,7 +3,9 @@ package modelo;
 import java.io.Serializable;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class Torneo implements Serializable {
 
@@ -22,6 +24,7 @@ public class Torneo implements Serializable {
     private boolean preferencialesLiberados;
     private final List<InscripcionTorneo> inscripciones = new ArrayList<>();
     private List<EncuentroTorneo> encuentros = new ArrayList<>();
+    private Map<Usuario, Double> premiosEfectivo = new HashMap<>();
     public Torneo(String nombre, TipoTorneo tipo, Deporte deporte, Categoria categoria, Nivel nivel,
             Modalidad modalidad, int cupos, double tarifa, LocalDate fecha) {
         if (nombre == null || nombre.isBlank() || tipo == null || deporte == null || fecha == null) {
@@ -254,17 +257,30 @@ public class Torneo implements Serializable {
             return 0.0;
         }
     }
-    public String getDiaSemana() {
-        switch (fecha.getDayOfWeek()) {
-            case MONDAY: return "LUNES";
-            case TUESDAY: return "MARTES";
-            case WEDNESDAY: return "MIERCOLES";
-            case THURSDAY: return "JUEVES";
-            case FRIDAY: return "VIERNES";
-            case SATURDAY: return "SABADO";
-            default: return "DOMINGO";
+
+    public void repartirPremiosEfectivo() {
+        if (premiosEfectivo == null) {
+            premiosEfectivo = new HashMap<>();
+        }
+        List<InscripcionTorneo> tabla = getPosiciones();
+        for (int posicion = 1; posicion <= tabla.size(); posicion++) {
+            InscripcionTorneo participante = tabla.get(posicion - 1);
+            double premio = premioPara(posicion);
+            if (premio > 0) {
+                List<Usuario> personas = participante.getParticipantes();
+                if (personas.isEmpty()) {
+                    continue;
+                }
+                double parte = premio / personas.size();
+                for (Usuario u : personas) {
+                    if (participante.recibePremioEfectivo(u)) {
+                        premiosEfectivo.put(u, premiosEfectivo.getOrDefault(u, 0.0) + parte);
+                    }
+                }
+            }
         }
     }
+    
 
     public String getNombre() { return nombre; }
     public TipoTorneo getTipo() { return tipo; }
@@ -284,6 +300,12 @@ public class Torneo implements Serializable {
         return new ArrayList<>(encuentros);
     
     }  
+    public double premioEfectivoDe(Usuario usuario) {
+        if (premiosEfectivo == null) {
+            premiosEfectivo = new HashMap<>();
+        }
+        return premiosEfectivo.getOrDefault(usuario, 0.0);
+    }
     @Override
     public String toString() {
         String categoriaONivel = esDeConjunto() ? "categoria " + categoria
