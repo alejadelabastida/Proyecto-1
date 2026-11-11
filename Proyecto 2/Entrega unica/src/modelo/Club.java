@@ -27,7 +27,7 @@ public class Club implements Serializable {
     private List<ReglaDeporte> reglas;
     private List<SolicitudCambioTurno> solicitudes;
     private List<Torneo> torneos;
-
+    private List<Bono> bonos;
     private transient Persistencia persistencia;
 
     public Club() {
@@ -1636,6 +1636,12 @@ public class Club implements Serializable {
         }
         return torneos;
     }
+    public List<Bono> getBonos() {
+        if (bonos == null) {
+            bonos = new ArrayList<>();
+        }
+        return bonos;
+    }
 
     public Estudiante registrarEstudiante(String nombre, String apellido, String login, String password,
             String codigoEstudiantil) {
@@ -1986,17 +1992,31 @@ public class Club implements Serializable {
         guardar();
     }
 
-public void finalizarTorneo(int codigoAdministrador, Torneo torneo) throws ReglaNegocioException {
-    exigirAdministrador(codigoAdministrador, "finalizar torneos");
-    
-    if (torneo == null || !getTorneos().contains(torneo)) {
-        throw new ReglaNegocioException("El torneo no existe en el club.");
+    public void finalizarTorneo(int codigoAdministrador, Torneo torneo) {
+        exigirAdministrador(codigoAdministrador, "finalizar torneos");
+
+        if (torneo == null || !getTorneos().contains(torneo)) {
+            throw new ReglaNegocioException("El torneo no existe en el club.");
+        }
+
+        torneo.finalizar();
+
+        if (torneo.getTipo() == TipoTorneo.COMPETITIVO) {
+            torneo.repartirPremiosEfectivo();
+        } else {
+            List<InscripcionTorneo> posiciones = torneo.getPosiciones();
+            if (!posiciones.isEmpty()) {
+                InscripcionTorneo ganador = posiciones.get(0);
+                for (Usuario u : ganador.getParticipantes()) {
+                    if (u instanceof Socio) {
+                        getBonos().add(new Bono((Socio) u, torneo, 15));
+                    }
+                }
+            }
+        }
+
+        guardar();
     }
-    
-    torneo.finalizar();
-    
-    guardar();
-}
 public void registrarResultado(int codigoAdministrador, Torneo torneo, EncuentroTorneo encuentro,
         int marcadorLocal, int marcadorVisitante) throws ReglaNegocioException {
 exigirAdministrador(codigoAdministrador, "registrar resultados");

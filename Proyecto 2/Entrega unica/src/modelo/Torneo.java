@@ -282,6 +282,18 @@ public class Torneo implements Serializable {
     }
     
 
+    public String getDiaSemana() {
+        switch (fecha.getDayOfWeek()) {
+            case MONDAY: return "LUNES";
+            case TUESDAY: return "MARTES";
+            case WEDNESDAY: return "MIERCOLES";
+            case THURSDAY: return "JUEVES";
+            case FRIDAY: return "VIERNES";
+            case SATURDAY: return "SABADO";
+            default: return "DOMINGO";
+        }
+    }
+
     public String getNombre() { return nombre; }
     public TipoTorneo getTipo() { return tipo; }
     public Deporte getDeporte() { return deporte; }
