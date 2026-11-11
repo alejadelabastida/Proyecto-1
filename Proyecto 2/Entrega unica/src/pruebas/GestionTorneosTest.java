@@ -138,7 +138,13 @@ class GestionTorneosTest {
 
     @Test
     void registrarResultadoActualizaLasPosiciones() {
-        fail("TODO");
+        iniciarCopaTenisConDosSocios();
+        EncuentroTorneo partido = tenisCompetitivo.getEncuentros().get(0);
+
+        club.registrarResultado(DatosBase.ADMIN, tenisCompetitivo, partido, 2, 0);
+
+        assertEquals(partido.getLocal(), tenisCompetitivo.getPosiciones().get(0));
+        assertEquals(3, tenisCompetitivo.puntosDe(partido.getLocal()));
     }
 
     @Test
