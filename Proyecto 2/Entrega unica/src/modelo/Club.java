@@ -1997,6 +1997,26 @@ public void finalizarTorneo(int codigoAdministrador, Torneo torneo) throws Regla
     
     guardar();
 }
+public void registrarResultado(int codigoAdministrador, Torneo torneo, EncuentroTorneo encuentro,
+        int marcadorLocal, int marcadorVisitante) throws ReglaNegocioException {
+exigirAdministrador(codigoAdministrador, "registrar resultados");
+
+if (torneo == null || !getTorneos().contains(torneo)) {
+throw new ReglaNegocioException("El torneo no existe en el club.");
+}
+
+if (torneo.getEstado() != EstadoTorneo.EN_CURSO) {
+throw new ReglaNegocioException("Solo se registran resultados en torneos en curso");
+}
+
+if (!torneo.getEncuentros().contains(encuentro)) {
+throw new ReglaNegocioException("El encuentro no pertenece a este torneo.");
+}
+
+encuentro.registrarResultado(marcadorLocal, marcadorVisitante);
+
+guardar();
+}
 }
 
     

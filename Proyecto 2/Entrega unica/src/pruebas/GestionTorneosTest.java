@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import consola.DatosBase;
 import modelo.Club;
 import modelo.Deporte;
+import modelo.EncuentroTorneo;
 import modelo.EstadoTorneo;
 import modelo.InscripcionDisciplina;
 import modelo.Modalidad;
@@ -49,6 +50,13 @@ class GestionTorneosTest {
                 Nivel.AVANZADO, Modalidad.DOBLES, 4, 0, enDosSemanas);
         club.getTorneos().add(tenisCompetitivo);
         club.getTorneos().add(padelRecreativo);
+    }
+    private void iniciarCopaTenisConDosSocios() {
+        new InscripcionDisciplina((Socio) DatosBase.usuario(club, DatosBase.SOCIO1), Deporte.TENIS, Nivel.INTERMEDIO);
+        new InscripcionDisciplina((Socio) DatosBase.usuario(club, DatosBase.SOCIO2), Deporte.TENIS, Nivel.INTERMEDIO);
+        club.inscribirJugadorEnTorneo(DatosBase.SOCIO1, tenisCompetitivo);
+        club.inscribirJugadorEnTorneo(DatosBase.SOCIO2, tenisCompetitivo);
+        club.iniciarTorneo(DatosBase.ADMIN, tenisCompetitivo);
     }
 
     @Test
@@ -135,12 +143,17 @@ class GestionTorneosTest {
 
     @Test
     void noSeRegistraResultadoEnTorneoQueNoEstaEnCurso() {
-        fail("TODO");
-    }
+        assertThrows(ReglaNegocioException.class, () -> {
+            club.registrarResultado(DatosBase.ADMIN, tenisCompetitivo, null, 2, 0);
+        });    }
 
     @Test
     void noSeAceptaMarcadorNegativo() {
-        fail("TODO");
+        iniciarCopaTenisConDosSocios();
+        EncuentroTorneo partido = tenisCompetitivo.getEncuentros().get(0);
+        assertThrows(ReglaNegocioException.class, () -> {
+            club.registrarResultado(DatosBase.ADMIN, tenisCompetitivo, partido, -1, 2);
+        });
     }
 
     // =================================================================
