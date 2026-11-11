@@ -2,26 +2,20 @@ package consola;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
 
 import modelo.Administrador;
 import modelo.Club;
+import modelo.EncuentroTorneo;
+import modelo.EstadoTorneo;
+import modelo.InscripcionTorneo;
 import modelo.ReglaNegocioException;
 import modelo.Torneo;
 import modelo.Usuario;
 import persistencia.Persistencia;
 
-/**
- * Consola del ADMINISTRADOR (Proyecto 2 - Persona 1).
- *
- * PLANTILLA generada con IAG (uso permitido por el enunciado: "codigo base de un
- * InputStream o Scanner que le permita la interaccion basica en consola" y
- * "creacion/replicacion de plantillas"). Replica la estructura de ConsolaParticipante.
- *
- * Los metodos marcados con TODO son LOGICA CRITICA: deben implementarse sin IAG.
- * Cada TODO solo describe que entradas leer y que metodo del modelo llamar.
- */
 public class ConsolaAdministrador {
 
     private static final String CARPETA_DATOS = "datos";
@@ -51,10 +45,6 @@ public class ConsolaAdministrador {
         }
     }
 
-    // ------------------------------------------------------------------
-    //  Autenticacion
-    // ------------------------------------------------------------------
-
     public void iniciar() {
         System.out.println("=== Club Deportivo - Administrador ===");
         if (!autenticar()) {
@@ -83,10 +73,6 @@ public class ConsolaAdministrador {
         }
         return false;
     }
-
-    // ------------------------------------------------------------------
-    //  Menu
-    // ------------------------------------------------------------------
 
     private void menuPrincipal() {
         int opcion = -1;
@@ -127,10 +113,6 @@ public class ConsolaAdministrador {
         }
     }
 
-    // ------------------------------------------------------------------
-    //  Opciones que ya existen en el modelo (de los compañeros)
-    // ------------------------------------------------------------------
-
     private void verInscritos() {
         Torneo torneo = elegirTorneo();
         if (torneo == null) {
@@ -158,54 +140,124 @@ public class ConsolaAdministrador {
         }
     }
 
-    // ------------------------------------------------------------------
-    //  Opciones de Persona 1: LOGICA CRITICA -> implementar sin IAG
-    // ------------------------------------------------------------------
-
     private void crearTorneo() {
-        // TODO (Persona 1):
-        // 1. Leer nombre (entrada.leerTexto) y elegir TipoTorneo, Deporte (elegirValor).
-        // 2. Segun el deporte: si es de conjunto pedir Categoria; si es individual pedir Nivel y Modalidad.
-        // 3. Leer cupos (entrada.leerEntero), tarifa solo si es COMPETITIVO, y fecha (leerFecha).
-        // 4. Llamar al metodo del Club que crea el torneo (debe exigir administrador) y mostrar el resultado.
         System.out.println("Pendiente de implementar.");
     }
 
     private void verTorneos() {
-        // TODO (Persona 1): permitir filtrar por EstadoTorneo (elegirValor) o ver todos,
-        // y mostrar cada torneo con su estado.
-        System.out.println("Pendiente de implementar.");
+        EstadoTorneo estado = elegirValor("Estado", EstadoTorneo.values());
+        List<Torneo> lista = club.consultarTorneosPorEstado(estado);
+        if (lista.isEmpty()) {
+            System.out.println("No hay torneos en estado " + estado);
+        } else {
+            for (Torneo t : lista) {
+                System.out.println(" - " + t);
+            }
+        }
     }
 
     private void iniciarTorneo() {
-        // TODO (Persona 1): elegirTorneo(), confirmar, llamar al metodo del Club que lo inicia.
-        System.out.println("Pendiente de implementar.");
+        Torneo torneo = elegirTorneo();
+        if (torneo == null) {
+            return;
+        }
+        if (entrada.confirmar("Iniciar " + torneo.getNombre())) {
+            try {
+                club.iniciarTorneo(administrador.getCodigo(), torneo);
+                System.out.println("LISTO: torneo iniciado con " + torneo.getEncuentros().size() + " encuentros.");
+            } catch (ReglaNegocioException e) {
+                System.out.println("ERROR: " + e.getMessage());
+            }
+        }
     }
 
     private void registrarResultado() {
-        // TODO (Persona 1): elegirTorneo(), elegir un encuentro pendiente, leer marcadores, registrar.
-        System.out.println("Pendiente de implementar.");
+        Torneo torneo = elegirTorneo();
+        if (torneo == null) {
+            return;
+        }
+
+        List<EncuentroTorneo> pendientes = new ArrayList<>();
+        for (EncuentroTorneo e : torneo.getEncuentros()) {
+            if (!e.isJugado()) {
+                pendientes.add(e);
+            }
+        }
+
+        if (pendientes.isEmpty()) {
+            System.out.println("No hay encuentros pendientes.");
+            return;
+        }
+
+        for (int i = 0; i < pendientes.size(); i++) {
+            EncuentroTorneo e = pendientes.get(i);
+            System.out.println((i + 1) + ". " + e.getLocal().getNombreParticipantes() + " vs " + e.getVisitante().getNombreParticipantes());
+        }
+
+        int numero = entrada.leerEntero("Numero de encuentro (0 para cancelar)", 0, pendientes.size());
+        if (numero == 0) {
+            return;
+        }
+
+        EncuentroTorneo encuentro = pendientes.get(numero - 1);
+        int marcadorLocal = entrada.leerEntero("Marcador de " + encuentro.getLocal().getNombreParticipantes(), 0, 99);
+        int marcadorVisitante = entrada.leerEntero("Marcador de " + encuentro.getVisitante().getNombreParticipantes(), 0, 99);
+
+        try {
+            club.registrarResultado(administrador.getCodigo(), torneo, encuentro, marcadorLocal, marcadorVisitante);
+            System.out.println("LISTO: resultado registrado.");
+        } catch (ReglaNegocioException e) {
+            System.out.println("ERROR: " + e.getMessage());
+        }
     }
 
     private void verPosiciones() {
-        // TODO (Persona 1): elegirTorneo() y mostrar la tabla de posiciones.
-        System.out.println("Pendiente de implementar.");
+        Torneo torneo = elegirTorneo();
+        if (torneo == null) {
+            return;
+        }
+        List<InscripcionTorneo> tabla = torneo.getPosiciones();
+        if (tabla.isEmpty()) {
+            System.out.println("Todavia no hay participantes.");
+        } else {
+            for (int i = 0; i < tabla.size(); i++) {
+                InscripcionTorneo inscripcion = tabla.get(i);
+                System.out.println((i + 1) + ". " + inscripcion.getNombreParticipantes() + " - " + torneo.puntosDe(inscripcion) + " pts");
+            }
+        }
     }
 
     private void finalizarTorneo() {
-        // TODO (Persona 1): elegirTorneo(), confirmar, finalizar y mostrar premios/bonos entregados.
-        System.out.println("Pendiente de implementar.");
+        Torneo torneo = elegirTorneo();
+        if (torneo == null) {
+            return;
+        }
+        if (entrada.confirmar("Finalizar " + torneo.getNombre())) {
+            try {
+                club.finalizarTorneo(administrador.getCodigo(), torneo);
+                System.out.println("LISTO: torneo finalizado.");
+                for (String linea : club.consultarHistorialTorneo(torneo)) {
+                    System.out.println(linea);
+                }
+            } catch (ReglaNegocioException e) {
+                System.out.println("ERROR: " + e.getMessage());
+            }
+        }
     }
 
     private void verHistorial() {
-        // TODO (Persona 1): elegirTorneo() y mostrar encuentros, participantes y posiciones,
-        // sin importar el estado del torneo.
-        System.out.println("Pendiente de implementar.");
+        Torneo torneo = elegirTorneo();
+        if (torneo == null) {
+            return;
+        }
+        try {
+            for (String linea : club.consultarHistorialTorneo(torneo)) {
+                System.out.println(linea);
+            }
+        } catch (ReglaNegocioException e) {
+            System.out.println("ERROR: " + e.getMessage());
+        }
     }
-
-    // ------------------------------------------------------------------
-    //  Utilidades de entrada (codigo base de consola)
-    // ------------------------------------------------------------------
 
     private Torneo elegirTorneo() {
         List<Torneo> torneos = club.getTorneos();
@@ -219,7 +271,6 @@ public class ConsolaAdministrador {
         return (numero == 0) ? null : torneos.get(numero - 1);
     }
 
-    /** Muestra los valores de un enum numerados y devuelve el elegido. Ej: elegirValor("Deporte", Deporte.values()). */
     private <E extends Enum<E>> E elegirValor(String titulo, E[] valores) {
         System.out.println(titulo + ":");
         for (int i = 0; i < valores.length; i++) {
@@ -229,7 +280,6 @@ public class ConsolaAdministrador {
         return valores[numero - 1];
     }
 
-    /** Lee una fecha con formato AAAA-MM-DD y la vuelve a pedir si es invalida o ya paso. */
     private LocalDate leerFecha(String pregunta) {
         while (true) {
             String texto = entrada.leerTexto(pregunta + " (AAAA-MM-DD)");
@@ -245,7 +295,6 @@ public class ConsolaAdministrador {
         }
     }
 
-    /** Lee un valor en pesos mayor o igual a cero. */
     private double leerDinero(String pregunta) {
         while (true) {
             String texto = entrada.leerTexto(pregunta);
