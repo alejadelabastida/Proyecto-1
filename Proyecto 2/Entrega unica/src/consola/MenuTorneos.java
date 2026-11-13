@@ -1,5 +1,6 @@
 package consola;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import modelo.Club;
@@ -163,9 +164,14 @@ public class MenuTorneos {
     }
 
     private Equipo elegirEquipo() {
-        List<Equipo> equipos = club.getEquipos();
+        List<Equipo> equipos = new ArrayList<>();
+        for (Equipo equipo : club.getEquipos()) {
+            if (equipo.getEntrenadorResponsable() == usuario) {
+                equipos.add(equipo);
+            }
+        }
         if (equipos.isEmpty()) {
-            throw new ReglaNegocioException("No hay equipos registrados");
+            throw new ReglaNegocioException("Usted no es el entrenador responsable de ningun equipo");
         }
         for (int i = 0; i < equipos.size(); i++) {
             System.out.println((i + 1) + ". " + equipos.get(i).getNombre());

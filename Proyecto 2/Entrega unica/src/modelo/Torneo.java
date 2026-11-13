@@ -10,7 +10,7 @@ import java.util.Map;
 public class Torneo implements Serializable {
 
     private static final long serialVersionUID = 1L;
-
+    public static final int DIAS_DE_RESERVA = 3;
     private final String nombre;
     private final TipoTorneo tipo;
     private final Deporte deporte;
@@ -130,6 +130,17 @@ public class Torneo implements Serializable {
             throw new ReglaNegocioException("Los cupos preferenciales ya fueron liberados");
         }
         preferencialesLiberados = true;
+    }
+    
+    public void liberarSiCorresponde(LocalDate hoy) {
+        if (estado == EstadoTorneo.ABIERTO && !preferencialesLiberados
+                && !hoy.isBefore(fecha.minusDays(DIAS_DE_RESERVA))) {
+            preferencialesLiberados = true;
+        }
+    }
+    
+    public LocalDate getFechaLiberacion() {
+        return fecha.minusDays(DIAS_DE_RESERVA);
     }
 
     public boolean getPreferencialesLiberados() {

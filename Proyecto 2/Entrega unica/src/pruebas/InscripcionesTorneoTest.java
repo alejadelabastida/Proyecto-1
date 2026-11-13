@@ -46,6 +46,7 @@ public class InscripcionesTorneoTest {
     public void preparar() {
         club = new Club();
         DatosBase.cargar(club);
+        club.setFechaActual(LocalDate.of(2026, 10, 1));
         socioConDisciplina(DatosBase.SOCIO1, Deporte.TENIS, Nivel.INTERMEDIO);
         socioConDisciplina(DatosBase.SOCIO2, Deporte.TENIS, Nivel.INTERMEDIO);
         socioConDisciplina(DatosBase.SOCIO3, Deporte.PADEL, Nivel.AVANZADO);
@@ -74,6 +75,7 @@ public class InscripcionesTorneoTest {
             equipo.inscribirJugador(jugador);
             club.getUsuarios().add(jugador);
         }
+        equipo.setEntrenadorResponsable((Entrenador) DatosBase.usuario(club, DatosBase.ENTRENADOR1));
         club.getEquipos().add(equipo);
         return equipo;
     }
@@ -275,16 +277,143 @@ public class InscripcionesTorneoTest {
     }
 
     @Test
-    public void alLiberarLosPreferentesCualquieraPuedeUsarlos() {
+    public void losPreferentesSeLiberanSolosCuandoFaltanTresDiasOMenos() {
         club.inscribirJugadorEnTorneo(DatosBase.SOCIO1, tenis);
-        club.liberarCuposPreferenciales(DatosBase.ADMIN, tenis);
+        club.setFechaActual(LUNES.minusDays(Torneo.DIAS_DE_RESERVA));
         InscripcionTorneo inscripcion = club.inscribirJugadorEnTorneo(DatosBase.SOCIO2, tenis);
         assertEquals(TipoCupo.REGULAR, inscripcion.getTipoCupo());
+        assertTrue(tenis.getPreferencialesLiberados());
     }
 
     @Test
-    public void soloElAdministradorLiberaCupos() {
-        assertThrows(ReglaNegocioException.class, () -> club.liberarCuposPreferenciales(DatosBase.SOCIO1, tenis));
+    public void unDiaAntesDeLaFechaDeLiberacionSiguenReservados() {
+        club.inscribirJugadorEnTorneo(DatosBase.SOCIO1, tenis);
+        club.setFechaActual(LUNES.minusDays(Torneo.DIAS_DE_RESERVA + 1));
+        assertThrows(ReglaNegocioException.class, () -> club.inscribirJugadorEnTorneo(DatosBase.SOCIO2, tenis));
+    }
+
+    @Test
+    public void alRetirarseDespuesDeLiberarElCupoQuedaDisponible() {
+        club.inscribirJugadorEnTorneo(DatosBase.SOCIO1, tenis);
+        club.setFechaActual(LUNES.minusDays(1));
+        club.inscribirJugadorEnTorneo(DatosBase.SOCIO2, tenis);
+        club.retirarDeTorneo(DatosBase.SOCIO1, tenis);
+        assertEquals(1, tenis.cuposLibres());
+    }
+
+    private void darHistorial(int codigoSocio, int puntaje) {
+        socioConDisciplinaYa(codigoSocio).actualizarRanking(puntaje, LocalDate.of(2026, 10, 1));
+    }
+
+    @Test
+    public void conEmpateEnElPuntajeDeCorteLosEmpatadosCalifican() {
+        Torneo cinco = new Torneo("Cinco", TipoTorneo.COMPETITIVO, Deporte.TENIS, null, Nivel.INTERMEDIO,
+                Modalidad.SENCILLOS, 5, 1000, LUNES);
+        club.getTorneos().add(cinco);
+        darHistorial(DatosBase.SOCIO1, 1050);
+        darHistorial(DatosBase.SOCIO2, 1050);
+        assertEquals(TipoCupo.PREFERENTE, club.inscribirJugadorEnTorneo(DatosBase.SOCIO1, cinco).getTipoCupo());
+        assertEquals(TipoCupo.REGULAR, club.inscribirJugadorEnTorneo(DatosBase.SOCIO2, cinco).getTipoCupo());
+    }
+
+    @Test
+    public void quienTieneMenosPuntajeQueElCorteNoTomaPreferente() {
+        Torneo cinco = new Torneo("Cinco", TipoTorneo.COMPETITIVO, Deporte.TENIS, null, Nivel.INTERMEDIO,
+                Modalidad.SENCILLOS, 5, 1000, LUNES);
+        club.getTorneos().add(cinco);
+        darHistorial(DatosBase.SOCIO1, 1020);
+        darHistorial(DatosBase.SOCIO2, 1050);
+        assertEquals(TipoCupo.REGULAR, club.inscribirJugadorEnTorneo(DatosBase.SOCIO1, cinco).getTipoCupo());
+    }
+
+    @Test
+    public void siSoloUnoTieneHistorialEseEsElMejor() {
+        Torneo cinco = new Torneo("Cinco", TipoTorneo.COMPETITIVO, Deporte.TENIS, null, Nivel.INTERMEDIO,
+                Modalidad.SENCILLOS, 5, 1000, LUNES);
+        club.getTorneos().add(cinco);
+        darHistorial(DatosBase.SOCIO2, 990);
+        assertEquals(TipoCupo.PREFERENTE, club.inscribirJugadorEnTorneo(DatosBase.SOCIO2, cinco).getTipoCupo());
+    }
+
+    @Test
+    public void sinNadieConHistorialNadieTomaPreferente() {
+        Torneo cinco = new Torneo("Cinco", TipoTorneo.COMPETITIVO, Deporte.TENIS, null, Nivel.INTERMEDIO,
+                Modalidad.SENCILLOS, 5, 1000, LUNES);
+        club.getTorneos().add(cinco);
+        assertEquals(TipoCupo.REGULAR, club.inscribirJugadorEnTorneo(DatosBase.SOCIO1, cinco).getTipoCupo());
+    }
+
+    @Test
+    public void losCuposYaOcupadosNoCambianQuienEsDeLosMejores() {
+        Torneo cinco = new Torneo("Cinco", TipoTorneo.COMPETITIVO, Deporte.TENIS, null, Nivel.INTERMEDIO,
+                Modalidad.SENCILLOS, 5, 1000, LUNES);
+        club.getTorneos().add(cinco);
+        darHistorial(DatosBase.SOCIO2, 1050);
+        club.inscribirJugadorEnTorneo(DatosBase.SOCIO1, cinco);
+        assertEquals(TipoCupo.PREFERENTE, club.inscribirJugadorEnTorneo(DatosBase.SOCIO2, cinco).getTipoCupo());
+    }
+
+    @Test
+    public void parejaDestacadaTomaCuposPreferentes() {
+        darHistorial(DatosBase.SOCIO3, 1100);
+        darHistorial(DatosBase.SOCIO4, 1080);
+        Torneo dobles = new Torneo("Dobles", TipoTorneo.RECREATIVO, Deporte.PADEL, null, Nivel.AVANZADO,
+                Modalidad.DOBLES, 5, 0, LUNES);
+        club.getTorneos().add(dobles);
+        assertEquals(TipoCupo.PREFERENTE,
+                club.inscribirParejaEnTorneo(DatosBase.SOCIO3, DatosBase.SOCIO4, dobles).getTipoCupo());
+    }
+
+    @Test
+    public void parejaConUnSoloJugadorDeHistorialNoEsDestacada() {
+        darHistorial(DatosBase.SOCIO3, 1100);
+        Torneo dobles = new Torneo("Dobles", TipoTorneo.RECREATIVO, Deporte.PADEL, null, Nivel.AVANZADO,
+                Modalidad.DOBLES, 5, 0, LUNES);
+        club.getTorneos().add(dobles);
+        assertEquals(TipoCupo.REGULAR,
+                club.inscribirParejaEnTorneo(DatosBase.SOCIO3, DatosBase.SOCIO4, dobles).getTipoCupo());
+    }
+    
+    @Test
+    public void entrenadorNoResponsableNoPuedeInscribirEquipoAjeno() {
+        Equipo equipo = crearEquipoCompleto("Halcones");
+        assertThrows(ReglaNegocioException.class,
+                () -> club.inscribirEquipoEnTorneo(DatosBase.ENTRENADOR2, equipo, futbol));
+        assertEquals(0, futbol.cuposOcupados());
+    }
+
+    @Test
+    public void entrenadorNoResponsableNoPuedeRetirarEquipoAjeno() {
+        Equipo equipo = crearEquipoCompleto("Halcones");
+        club.inscribirEquipoEnTorneo(DatosBase.ENTRENADOR1, equipo, futbol);
+        assertThrows(ReglaNegocioException.class,
+                () -> club.retirarEquipoDeTorneo(DatosBase.ENTRENADOR2, equipo, futbol));
+        assertEquals(1, futbol.cuposOcupados());
+    }
+
+    @Test
+    public void equipoSinEntrenadorResponsableNoSeInscribe() {
+        Equipo equipo = crearEquipoCompleto("Halcones");
+        equipo.setEntrenadorResponsable(null);
+        assertThrows(ReglaNegocioException.class,
+                () -> club.inscribirEquipoEnTorneo(DatosBase.ENTRENADOR1, equipo, futbol));
+    }
+
+    @Test
+    public void soloElAdministradorAsignaElEntrenadorDeUnEquipo() {
+        Equipo equipo = crearEquipoCompleto("Halcones");
+        assertThrows(ReglaNegocioException.class,
+                () -> club.asignarEntrenadorAEquipo(DatosBase.SOCIO1, equipo, DatosBase.ENTRENADOR2));
+        club.asignarEntrenadorAEquipo(DatosBase.ADMIN, equipo, DatosBase.ENTRENADOR2);
+        club.inscribirEquipoEnTorneo(DatosBase.ENTRENADOR2, equipo, futbol);
+        assertEquals(1, futbol.cuposOcupados());
+    }
+
+    @Test
+    public void unSocioNoPuedeSerEntrenadorResponsable() {
+        Equipo equipo = crearEquipoCompleto("Halcones");
+        assertThrows(ReglaNegocioException.class,
+                () -> club.asignarEntrenadorAEquipo(DatosBase.ADMIN, equipo, DatosBase.SOCIO1));
     }
 
     // ---------- HU7: empleados ----------
@@ -345,6 +474,69 @@ public class InscripcionesTorneoTest {
         assertEquals(0, tenis.cuposOcupados());
         assertEquals(0, padel.cuposOcupados());
         assertEquals(0, tenis.totalRecaudado());
+    }
+
+    @Test
+    public void fisioterapeutaTambienPuedeInscribirseEnTorneoIndividual() {
+        Torneo abierto = new Torneo("Tenis abierto", TipoTorneo.COMPETITIVO, Deporte.TENIS, null,
+                Nivel.PRINCIPIANTE, Modalidad.SENCILLOS, 10, 20000, LUNES);
+        club.getTorneos().add(abierto);
+        InscripcionTorneo inscripcion = club.inscribirJugadorEnTorneo(DatosBase.FISIO, abierto);
+        assertEquals(0, inscripcion.getTarifaCobrada());
+    }
+
+    @Test
+    public void fisioterapeutaDeTurnoNoPuedeInscribirse() {
+        Usuario mateo = DatosBase.usuario(club, DatosBase.FISIO);
+        new Turno((modelo.Empleado) mateo, "LUNES", LocalTime.of(8, 0), LocalTime.of(16, 0));
+        Torneo abierto = new Torneo("Tenis abierto", TipoTorneo.COMPETITIVO, Deporte.TENIS, null,
+                Nivel.PRINCIPIANTE, Modalidad.SENCILLOS, 10, 20000, LUNES);
+        club.getTorneos().add(abierto);
+        assertThrows(ReglaNegocioException.class, () -> club.inscribirJugadorEnTorneo(DatosBase.FISIO, abierto));
+    }
+
+    @Test
+    public void empleadoDeTurnoOtroDiaSiPuedeInscribirse() {
+        Entrenador carlos = (Entrenador) DatosBase.usuario(club, DatosBase.ENTRENADOR1);
+        new Turno(carlos, "MARTES", LocalTime.of(8, 0), LocalTime.of(16, 0));
+        Torneo abierto = new Torneo("Tenis abierto", TipoTorneo.COMPETITIVO, Deporte.TENIS, null,
+                Nivel.PRINCIPIANTE, Modalidad.SENCILLOS, 10, 20000, LUNES);
+        club.getTorneos().add(abierto);
+        club.inscribirJugadorEnTorneo(DatosBase.ENTRENADOR1, abierto);
+        assertEquals(1, abierto.cuposOcupados());
+    }
+
+    @Test
+    public void parejaDeEmpleadoYEstudiantePagaSoloLaTarifaDelEstudiante() {
+        club.registrarEstudiante("Diana", "Castro", "diana", "1234", "202110001");
+        int diana = club.buscarCodigoPorLogin("diana");
+        Torneo dobles = new Torneo("Dobles pago", TipoTorneo.COMPETITIVO, Deporte.TENIS, null,
+                Nivel.PRINCIPIANTE, Modalidad.DOBLES, 4, 20000, LUNES);
+        club.getTorneos().add(dobles);
+        InscripcionTorneo inscripcion = club.inscribirParejaEnTorneo(DatosBase.ENTRENADOR2, diana, dobles);
+        assertEquals(20000, inscripcion.getTarifaCobrada());
+        assertTrue(!inscripcion.recibePremioEfectivo(DatosBase.usuario(club, DatosBase.ENTRENADOR2)));
+        assertTrue(inscripcion.recibePremioEfectivo(DatosBase.usuario(club, diana)));
+    }
+
+    @Test
+    public void parejaDeDosEmpleadosNoPagaNada() {
+        Torneo dobles = new Torneo("Dobles pago", TipoTorneo.COMPETITIVO, Deporte.TENIS, null,
+                Nivel.PRINCIPIANTE, Modalidad.DOBLES, 4, 20000, LUNES);
+        club.getTorneos().add(dobles);
+        InscripcionTorneo inscripcion = club.inscribirParejaEnTorneo(DatosBase.ENTRENADOR2, DatosBase.FISIO, dobles);
+        assertEquals(0, inscripcion.getTarifaCobrada());
+    }
+
+    @Test
+    public void parejaConEmpleadoDeTurnoSeRechazaCompleta() {
+        carlosConTurnoElLunes();
+        Torneo dobles = new Torneo("Dobles pago", TipoTorneo.COMPETITIVO, Deporte.TENIS, null,
+                Nivel.PRINCIPIANTE, Modalidad.DOBLES, 4, 20000, LUNES);
+        club.getTorneos().add(dobles);
+        assertThrows(ReglaNegocioException.class,
+                () -> club.inscribirParejaEnTorneo(DatosBase.ENTRENADOR1, DatosBase.ENTRENADOR2, dobles));
+        assertEquals(0, dobles.cuposOcupados());
     }
 
     // ---------- HU8: consultas ----------

@@ -9,7 +9,8 @@ public class VentaCafeteria extends Venta {
     private static final double TASA_CONSUMO = 0.08;
 
     private double impuestoConsumo;
-    private double propina;  
+    private double propina;
+    private double descuentoBono;
    
     public VentaCafeteria(Socio socio, Map<Producto, Integer> productos, double porcentajePropina, int puntosUsar) {
         super(socio, productos);
@@ -18,6 +19,18 @@ public class VentaCafeteria extends Venta {
         this.propina = redondear(subtotal * porcentajePropina);
         terminar();
     }
+    
+    public VentaCafeteria(Socio socio, Map<Producto, Integer> productos, double porcentajePropina,
+            double porcentajeBono) {
+        super(socio, productos);
+        this.puntosRedimidos = 0;
+        this.descuentoBono = redondear(subtotal * porcentajeBono / 100.0);
+        this.impuestoConsumo = redondear((subtotal - descuentoBono) * TASA_CONSUMO);
+        this.propina = redondear(subtotal * porcentajePropina);
+        terminar();
+    }
+
+    public double getDescuentoBono() { return descuentoBono;}
 
     @Override
     public double calcularTotal() {
