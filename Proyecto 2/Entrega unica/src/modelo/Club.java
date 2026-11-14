@@ -177,34 +177,158 @@ public class Club implements Serializable {
         return jugador;
     }
 
-    public PartidoInterno registrarPartidoInterno(int codigoEntrenador, Equipo local, Equipo visitante,
-            LocalDate fecha, int marcadorLocal, int marcadorVisitante,
-            Map<Jugador, Map<String, Integer>> estadisticas) {
-        Entrenador entrenador = buscarEntrenador(codigoEntrenador);
-        if (entrenador == null) {
-            throw new ReglaNegocioException("Se requiere un entrenador registrado");
-        }
-        if (local == null || visitante == null || !equipos.contains(local) ||
-                !equipos.contains(visitante) || local == visitante ||
-                local.getDeporte() != visitante.getDeporte() ||
-                local.getCategoria() != visitante.getCategoria()) {
-            throw new ReglaNegocioException("Equipos incompatibles");
-        }
-        int minimo = minimoJugadores(local.getDeporte());
-        if (contarHabilitados(local) < minimo || contarHabilitados(visitante) < minimo) {
-            throw new ReglaNegocioException("No hay suficientes jugadores habilitados");
-        }
+    public PartidoInterno programarPartidoInterno(
+        int codigoEntrenador, Equipo local,
+        Equipo visitante, LocalDate fecha) {
 
-        validarMarcador(local.getDeporte(), marcadorLocal, marcadorVisitante);
-        validarEstadisticas(estadisticas, local, visitante, null);
-
-        PartidoInterno partido = new PartidoInterno(fecha, local.getDeporte(), local, visitante);
-        partido.registrarResultado(marcadorLocal, marcadorVisitante);
-        registrarEstadisticas(partido, estadisticas, null);
-        partidos.add(partido);
-        guardar();
-        return partido;
+    if (buscarEntrenador(codigoEntrenador) == null) {
+        throw new ReglaNegocioException("Se requiere un entrenador registrado");
     }
+
+    if (fecha == null || !fecha.isAfter(LocalDate.now())) {
+        throw new ReglaNegocioException("La fecha debe ser futura");
+    }
+
+    if (local == null || visitante == null
+            || !equipos.contains(local)
+            || !equipos.contains(visitante)
+            || local == visitante
+            || local.getDeporte() != visitante.getDeporte()
+            || local.getCategoria() != visitante.getCategoria()) {
+        throw new ReglaNegocioException("Equipos incompatibles");
+    }
+
+    int minimo = minimoJugadores(local.getDeporte());
+
+    if (contarHabilitados(local) < minimo
+            || contarHabilitados(visitante) < minimo) {
+        throw new ReglaNegocioException(
+            "No hay suficientes jugadores habilitados"
+        );
+    }
+
+    PartidoInterno partido = new PartidoInterno(
+        fecha, local.getDeporte(), local, visitante, codigoEntrenador
+    );
+
+    partidos.add(partido);
+    guardar();
+
+    return partido;
+}
+
+    public void definirAlineacionInterna(
+            int codigoEntrenador,
+            PartidoInterno partido,
+            Equipo equipo,
+            List<Jugador> jugadores) {
+
+        validarPartidoInternoResponsable(codigoEntrenador, partido);
+
+        if (partido.tieneResultado()) {
+            throw new ReglaNegocioException("El partido ya tiene resultado");
+        }
+
+        if (equipo != partido.getEquipo1()
+                && equipo != partido.getEquipo2()) {
+            throw new ReglaNegocioException(
+                "El equipo no participa en el partido"
+            );
+        }
+
+        if (jugadores == null
+                || jugadores.size() < minimoJugadores(partido.getDeporte())) {
+            throw new ReglaNegocioException(
+                "La alineacion no cumple el minimo de jugadores"
+            );
+        }
+
+        List<Jugador> inscritos = equipo.getJugadores();
+
+        if (jugadores.size() > inscritos.size()) {
+            throw new ReglaNegocioException("Alineacion demasiado grande");
+        }
+
+        List<Jugador> sinRepetidos = new ArrayList<>();
+
+        for (Jugador jugador : jugadores) {
+            if (jugador == null
+                    || !inscritos.contains(jugador)
+                    || jugador.estaSuspendido()) {
+                throw new ReglaNegocioException(
+                    "Jugador no habilitado para este equipo"
+                );
+            }
+
+            if (sinRepetidos.contains(jugador)) {
+                throw new ReglaNegocioException(
+                    "Jugador repetido en la alineacion"
+                );
+            }
+
+            sinRepetidos.add(jugador);
+        }
+
+        partido.definirAlineacion(equipo, sinRepetidos);
+        guardar();
+    }
+
+    public void registrarResultadoInterno(
+        int codigoEntrenador,
+        PartidoInterno partido,
+        int marcadorLocal,
+        int marcadorVisitante) {
+
+    validarPartidoInternoResponsable(codigoEntrenador, partido);
+
+    if (partido.tieneResultado()) {
+        throw new ReglaNegocioException("El partido ya tiene resultado");
+    }
+
+    if (partido.getFecha().isAfter(LocalDate.now())) {
+        throw new ReglaNegocioException(
+            "El partido todavia no se ha disputado"
+        );
+    }
+
+    if (!partido.tieneAmbasAlineaciones()) {
+        throw new ReglaNegocioException(
+            "Faltan alineaciones de los equipos"
+        );
+    }
+
+    validarMarcador(
+        partido.getDeporte(), marcadorLocal, marcadorVisitante
+    );
+
+    partido.registrarResultado(marcadorLocal, marcadorVisitante);
+    guardar();
+}
+
+    private void validarPartidoInternoResponsable(
+            int codigoEntrenador, PartidoInterno partido) {
+
+        if (buscarEntrenador(codigoEntrenador) == null) {
+            throw new ReglaNegocioException(
+                "Se requiere un entrenador registrado"
+            );
+        }
+
+        if (partido == null || !partidos.contains(partido)) {
+            throw new ReglaNegocioException(
+                "El partido no pertenece al club"
+            );
+        }
+
+        if (partido.getCodigoEntrenadorResponsable() == 0
+                || partido.getCodigoEntrenadorResponsable() != codigoEntrenador) {
+            throw new ReglaNegocioException(
+                "No eres responsable de este partido"
+            );
+        }
+}
+
+
 
     public InscripcionEquipo inscribirEquipo(int codigoEntrenador, Equipo equipo,
             Competencia competencia, List<Jugador> jugadores) {
@@ -2077,6 +2201,60 @@ public List<String> consultarHistorialTorneo(Torneo torneo) throws ReglaNegocioE
 
     return lineas;
 }
+
+
+public void registrarEstadisticasPartidoInterno(
+        int codigoEntrenador,
+        PartidoInterno partido,
+        Map<Jugador, Map<String, Integer>> estadisticas) {
+
+    validarPartidoInternoResponsable(codigoEntrenador, partido);
+
+    if (!partido.tieneResultado()) {
+        throw new ReglaNegocioException(
+            "El partido todavia no tiene resultado"
+        );
+    }
+
+    if (estadisticas == null || estadisticas.isEmpty()) {
+        throw new ReglaNegocioException(
+            "No hay estadisticas para registrar"
+        );
+    }
+
+    List<Jugador> alineados = new ArrayList<>();
+    alineados.addAll(partido.getAlineacionLocal());
+    alineados.addAll(partido.getAlineacionVisitante());
+
+    for (Jugador jugador : estadisticas.keySet()) {
+
+        if (!alineados.contains(jugador)) {
+            throw new ReglaNegocioException(
+                "El jugador no pertenece a la alineacion"
+            );
+        }
+
+        for (EstadisticaPartido anterior : partido.getEstadisticas()) {
+            if (anterior.getJugador() == jugador) {
+                throw new ReglaNegocioException(
+                    "El jugador ya tiene estadisticas registradas"
+                );
+            }
+        }
+    }
+
+    validarEstadisticas(
+        estadisticas,
+        partido.getEquipo1(),
+        partido.getEquipo2(),
+        null
+    );
+
+    registrarEstadisticas(partido, estadisticas, null);
+    guardar();
+}
+
+
 }
 
     
