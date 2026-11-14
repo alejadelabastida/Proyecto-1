@@ -1,0 +1,110 @@
+classDiagram
+    direction LR
+
+    class Club {
+        -List~Torneo~ torneos
+        -List~Bono~ bonos
+        +crearTorneo(int, String, TipoTorneo, Deporte, Categoria, Nivel, Modalidad, int, double, LocalDate) Torneo
+        +iniciarTorneo(int, Torneo) void
+        +registrarResultado(int, Torneo, EncuentroTorneo, int, int) void
+        +finalizarTorneo(int, Torneo) void
+        +consultarTorneosPorEstado(EstadoTorneo) List~Torneo~
+        +consultarHistorialTorneo(Torneo) List~String~
+        +getTorneos() List~Torneo~
+        +getBonos() List~Bono~
+        -exigirAdministrador(int, String) void
+    }
+
+    class Torneo {
+        -String nombre
+        -TipoTorneo tipo
+        -Deporte deporte
+        -int cupos
+        -double tarifa
+        -LocalDate fecha
+        -EstadoTorneo estado
+        -List~InscripcionTorneo~ inscripciones
+        -List~EncuentroTorneo~ encuentros
+        -Map~Usuario, Double~ premiosEfectivo
+        +iniciar() void
+        +finalizar() void
+        -generarEncuentros() void
+        +puntosDe(InscripcionTorneo) int
+        +diferenciaDe(InscripcionTorneo) int
+        +getPosiciones() List~InscripcionTorneo~
+        +premioPara(int) double
+        +repartirPremiosEfectivo() void
+        +premioEfectivoDe(Usuario) double
+        +totalRecaudado() double
+        +getEncuentros() List~EncuentroTorneo~
+    }
+
+    class EncuentroTorneo {
+        -InscripcionTorneo local
+        -InscripcionTorneo visitante
+        -int marcadorLocal
+        -int marcadorVisitante
+        -boolean jugado
+        +registrarResultado(int, int) void
+        +getGanador() InscripcionTorneo
+        +isJugado() boolean
+    }
+
+    class Bono {
+        -Socio dueno
+        -Torneo torneoOrigen
+        -double porcentaje
+        -boolean redimido
+        +redimir() void
+        +isRedimido() boolean
+    }
+
+    class InscripcionTorneo {
+        -List~Usuario~ participantes
+        -TipoCupo tipoCupo
+        -double tarifaCobrada
+        +getParticipantes() List~Usuario~
+        +recibePremioEfectivo(Usuario) boolean
+        +getNombreParticipantes() String
+    }
+
+    class EstadoTorneo {
+        <<enumeration>>
+        ABIERTO
+        EN_CURSO
+        FINALIZADO
+    }
+
+    class TipoTorneo {
+        <<enumeration>>
+        RECREATIVO
+        COMPETITIVO
+    }
+
+    class Usuario {
+        <<abstract>>
+    }
+    class Socio
+    class Empleado {
+        <<abstract>>
+    }
+
+    class ConsolaAdministrador {
+        -Club club
+        -Administrador administrador
+        +main(String[]) void
+    }
+
+    Club "1" o-- "*" Torneo : torneos
+    Club "1" o-- "*" Bono : bonos
+    Torneo "1" *-- "*" InscripcionTorneo : inscripciones
+    Torneo "1" *-- "*" EncuentroTorneo : encuentros
+    EncuentroTorneo --> "2" InscripcionTorneo : local / visitante
+    InscripcionTorneo --> "1..*" Usuario : participantes
+    Bono --> "1" Socio : dueno
+    Bono --> "1" Torneo : torneoOrigen
+    Torneo --> EstadoTorneo
+    Torneo --> TipoTorneo
+    Socio --|> Usuario
+    Empleado --|> Usuario
+    ConsolaAdministrador --> Club

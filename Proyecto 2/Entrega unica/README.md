@@ -22,3 +22,15 @@
 8. Para repetir una prueba desde cero, borre su carpeta `datos/pruebaN` y vuelva a ejecutarla. 
 9. Repita los pasos 4 a 8 con las demás pruebas.
 
+
+## Proyecto 2 – Consola del administrador (torneos internos)
+
+1. Abra `src/consola/ConsolaAdministrador.java`, clic derecho > **Run As > Java Application**.
+2. Entre con usuario `admin` y clave `admin123`. Si entra un socio o un empleado, el programa le avisa que use la consola de su rol y se cierra.
+3. El menú tiene 9 opciones: crear torneo, ver torneos por estado, ver inscritos, liberar cupos preferenciales, iniciar, registrar el resultado de un encuentro, ver posiciones, finalizar (reparte premios o bonos) y ver el historial.
+4. Los datos se cargan y se guardan solos en `datos/club.dat`. La primera vez se crean tres torneos de ejemplo.
+5. Para probar un torneo completo: inscriba al menos dos socios desde `ConsolaParticipante` (deben estar en la disciplina y el nivel del torneo), vuelva a esta consola, inicie el torneo, registre los resultados y finalícelo.
+
+### Pruebas JUnit de torneos
+
+Clic derecho sobre `src/pruebas/GestionTorneosTest.java` > **Run As > JUnit Test**. Son 15 pruebas y no escriben archivos.
