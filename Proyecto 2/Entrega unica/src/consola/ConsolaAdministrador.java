@@ -11,6 +11,8 @@ import modelo.Categoria;
 import modelo.Club;
 import modelo.Deporte;
 import modelo.EncuentroTorneo;
+import modelo.Entrenador;
+import modelo.Equipo;
 import modelo.EstadoTorneo;
 import modelo.InscripcionTorneo;
 import modelo.Modalidad;
@@ -71,7 +73,7 @@ public class ConsolaAdministrador {
                 return true;
             }
             if (usuario != null) {
-                System.out.println("Esta consola es solo para el administrador. Use la consola de su rol.");
+                System.out.println("Esta consola es solo para el administrador. Use la consola de su rol");
                 return false;
             }
             System.out.println("Usuario o clave incorrectos. Intento " + intento + " de " + INTENTOS_DE_LOGIN);
@@ -87,7 +89,7 @@ public class ConsolaAdministrador {
             System.out.println("1. Crear torneo");
             System.out.println("2. Ver torneos (por estado)");
             System.out.println("3. Ver inscritos de un torneo");
-            System.out.println("4. Liberar cupos preferenciales");
+            System.out.println("4. Asignar entrenador a un equipo");
             System.out.println("5. Iniciar torneo");
             System.out.println("6. Registrar resultado de un encuentro");
             System.out.println("7. Ver posiciones");
@@ -105,7 +107,7 @@ public class ConsolaAdministrador {
                 case 1: crearTorneo(); break;
                 case 2: verTorneos(); break;
                 case 3: verInscritos(); break;
-                case 4: liberarCuposPreferenciales(); break;
+                case 4: asignarEntrenadorAEquipo(); break;
                 case 5: iniciarTorneo(); break;
                 case 6: registrarResultado(); break;
                 case 7: verPosiciones(); break;
@@ -134,15 +136,24 @@ public class ConsolaAdministrador {
                 + " (preferenciales: " + torneo.cuposPreferenciales() + ")");
     }
 
-    private void liberarCuposPreferenciales() {
-        Torneo torneo = elegirTorneo();
-        if (torneo == null) {
+    private void asignarEntrenadorAEquipo() {
+        List<Equipo> equipos = club.getEquipos();
+        if (equipos.isEmpty()) {
+            throw new ReglaNegocioException("No hay equipos registrados");
+        }
+        for (int i = 0; i < equipos.size(); i++) {
+            Entrenador actual = equipos.get(i).getEntrenadorResponsable();
+            System.out.println((i + 1) + ". " + equipos.get(i).getNombre()
+                    + " | entrenador: " + (actual == null ? "sin asignar" : actual.getNombre()));
+        }
+        int numero = entrada.leerEntero("Numero de equipo (0 para cancelar)", 0, equipos.size());
+        if (numero == 0) {
             return;
         }
-        if (entrada.confirmar("Liberar los cupos preferenciales de " + torneo.getNombre())) {
-            club.liberarCuposPreferenciales(administrador.getCodigo(), torneo);
-            System.out.println("LISTO: los cupos preferenciales quedaron como regulares.");
-        }
+        String login = entrada.leerTexto("Usuario del entrenador");
+        club.asignarEntrenadorAEquipo(administrador.getCodigo(), equipos.get(numero - 1),
+                club.buscarCodigoPorLogin(login));
+        System.out.println("LISTO: entrenador asignado al equipo.");
     }
 
     private void crearTorneo() {

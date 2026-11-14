@@ -7,6 +7,7 @@ import modelo.Club;
 import modelo.Empleado;
 import modelo.ReglaNegocioException;
 import modelo.Usuario;
+import modelo.Socio;
 import persistencia.Persistencia;
 
 /**
@@ -84,7 +85,11 @@ public class ConsolaParticipante {
             return;
         }
         System.out.println("Bienvenido(a), " + usuario.getNombre() + ".");
-        new MenuTorneos(club, usuario, entrada).mostrar();
+        if (usuario instanceof Socio) {
+            new MenuSocio(club, (Socio) usuario, entrada).mostrar();
+        } else {
+            new MenuTorneos(club, usuario, entrada).mostrar();
+        }
     }
 
     private void registrarEstudiante() {

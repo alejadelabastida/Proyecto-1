@@ -1,5 +1,9 @@
 package consola;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.format.DateTimeParseException;
+import java.util.List;
 import java.util.Scanner;
 
 public class Entrada {
@@ -56,5 +60,42 @@ public class Entrada {
             }
             System.out.println("  Responda s o n.");
         }
+    }
+    
+    public LocalDate leerFecha(String pregunta) {
+        while (true) {
+            System.out.print(pregunta + " (aaaa-mm-dd): ");
+            try {
+                return LocalDate.parse(leerLinea());
+            } catch (DateTimeParseException e) {
+                System.out.println("  Fecha invalida. Ejemplo: 2026-12-15");
+            }
+        }
+    }
+
+    public LocalTime leerHora(String pregunta) {
+        while (true) {
+            System.out.print(pregunta + " (hh:mm): ");
+            try {
+                return LocalTime.parse(leerLinea());
+            } catch (DateTimeParseException e) {
+                System.out.println("  Hora invalida. Ejemplo: 14:30");
+            }
+        }
+    }
+
+    public <T> T elegir(String pregunta, List<T> elementos) {
+        for (int i = 0; i < elementos.size(); i++) {
+            System.out.println((i + 1) + ". " + elementos.get(i));
+        }
+        int numero = leerEntero(pregunta + " (0 para cancelar)", 0, elementos.size());
+        return (numero == 0) ? null : elementos.get(numero - 1);
+    }
+
+    public <T> T elegirValor(String pregunta, T[] valores) {
+        for (int i = 0; i < valores.length; i++) {
+            System.out.println((i + 1) + ". " + valores[i]);
+        }
+        return valores[leerEntero(pregunta, 1, valores.length) - 1];
     }
 }

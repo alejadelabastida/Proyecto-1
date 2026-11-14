@@ -12,6 +12,7 @@ public class Equipo  implements java.io.Serializable {
     private final Categoria categoria;
     private final int cupoMaximo;
     private final List<Jugador> jugadores = new ArrayList<>();
+    private Entrenador entrenadorResponsable;
     public Equipo(String nombre, Deporte deporte, Categoria categoria, int cupoMaximo) {
         if (nombre == null || nombre.isBlank() || deporte == null || categoria == null || cupoMaximo <= 0)
             throw new IllegalArgumentException("Datos de equipo invalidos");
@@ -33,6 +34,14 @@ public class Equipo  implements java.io.Serializable {
 
     public Categoria getCategoria() {
         return categoria;
+    }
+    
+    public Entrenador getEntrenadorResponsable() {
+        return entrenadorResponsable;
+    }
+    
+    public void setEntrenadorResponsable(Entrenador entrenador) {
+        this.entrenadorResponsable = entrenador;
     }
 
     public int getCupoMaximo() {
