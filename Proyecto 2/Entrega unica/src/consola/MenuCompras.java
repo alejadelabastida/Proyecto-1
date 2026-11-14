@@ -8,6 +8,7 @@ import java.util.Map;
 import modelo.ArticuloTienda;
 import modelo.Bono;
 import modelo.Club;
+import modelo.Empleado;
 import modelo.Producto;
 import modelo.ReglaNegocioException;
 import modelo.Snack;
@@ -31,28 +32,39 @@ public class MenuCompras {
         this.entrada = entrada;
     }
 
-    public void mostrar() {
-        boolean esSocio = usuario instanceof Socio;
-        int opcion = -1;
-        while (opcion != 0) {
-            System.out.println();
-            System.out.println("--- Compras ---");
-            System.out.println("1. Comprar en la tienda");
-            if (esSocio) {
-                System.out.println("2. Comprar en la cafeteria");
-                System.out.println("3. Mis bonos de descuento");
-                System.out.println("4. Mis puntos de fidelidad");
-                System.out.println("5. Mi historial de compras");
-            }
-            System.out.println("0. Volver");
-            opcion = entrada.leerEntero("Opcion", 0, esSocio ? 5 : 1);
-            try {
-                ejecutar(opcion);
-            } catch (ReglaNegocioException e) {
-                System.out.println("NO SE PUDO: " + e.getMessage());
-            }
+    
+public void mostrar() {
+    boolean esSocio = usuario instanceof Socio;
+    int opcion = -1;
+
+    while (opcion != 0) {
+        System.out.println();
+        System.out.println("--- Compras ---");
+        System.out.println("1. Comprar en la tienda");
+        System.out.println("2. Comprar en la cafeteria");
+
+        if (esSocio) {
+            System.out.println("3. Mis bonos de descuento");
+            System.out.println("4. Mis puntos de fidelidad");
+            System.out.println("5. Mi historial de compras");
+        }
+
+        System.out.println("0. Volver");
+
+        opcion = entrada.leerEntero(
+            "Opcion", 0, esSocio ? 5 : 2
+        );
+
+        try {
+            ejecutar(opcion);
+        } catch (ReglaNegocioException e) {
+            System.out.println(
+                "NO SE PUDO: " + e.getMessage()
+            );
         }
     }
+}
+
 
     private void ejecutar(int opcion) {
         switch (opcion) {
@@ -87,11 +99,23 @@ public class MenuCompras {
         if (bono != null) {
             venta = club.comprarTiendaConBono(usuario.getCodigo(), compra, bono);
         } else {
-            String codigo = "";
-            if (entrada.confirmar("Tiene un codigo de descuento de un empleado")) {
-                codigo = entrada.leerTexto("Codigo");
-            }
-            venta = club.comprarTienda(usuario.getCodigo(), compra, codigo);
+            
+        String codigo = "";
+
+        if (usuario instanceof Empleado) {
+            codigo = ((Empleado) usuario).getCodigoDescuento();
+            System.out.println(
+                "Se aplica tu descuento de empleado del 15%."
+            );
+        } else if (entrada.confirmar(
+                "Tiene un codigo de descuento de un empleado")) {
+            codigo = entrada.leerTexto("Codigo");
+        }
+
+        venta = club.comprarTienda(
+            usuario.getCodigo(), compra, codigo
+        );
+
         }
         System.out.println("LISTO: " + venta);
     }
@@ -122,8 +146,38 @@ public class MenuCompras {
         if (bono != null) {
             venta = club.comprarCafeteriaConBono(usuario.getCodigo(), compra, propina, bono);
         } else {
-            int puntos = entrada.leerEntero("Puntos de fidelidad a usar", 0, ((Socio) usuario).getPuntosFidelidad());
-            venta = club.comprarCafeteria(usuario.getCodigo(), compra, propina, puntos);
+            
+        int puntos = 0;
+        String codigo = "";
+
+        if (usuario instanceof Empleado) {
+            codigo = ((Empleado) usuario).getCodigoDescuento();
+
+            System.out.println(
+                "Se aplica tu descuento de empleado del 15%."
+            );
+
+        } else if (entrada.confirmar(
+                "Tiene un codigo de descuento de un empleado")) {
+
+            codigo = entrada.leerTexto("Codigo");
+
+        } else {
+            puntos = entrada.leerEntero(
+                "Puntos de fidelidad a usar",
+                0,
+                ((Socio) usuario).getPuntosFidelidad()
+            );
+        }
+
+        venta = club.comprarCafeteria(
+            usuario.getCodigo(),
+            compra,
+            propina,
+            puntos,
+            codigo
+        );
+
         }
         System.out.println("LISTO: " + venta);
     }

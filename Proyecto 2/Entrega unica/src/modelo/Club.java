@@ -178,7 +178,9 @@ public class Club implements Serializable {
         return jugador;
     }
 
-    public PartidoInterno programarPartidoInterno(
+    
+
+public PartidoInterno programarPartidoInterno(
         int codigoEntrenador, Equipo local,
         Equipo visitante, LocalDate fecha) {
 
@@ -217,6 +219,8 @@ public class Club implements Serializable {
 
     return partido;
 }
+
+
 
     public void definirAlineacionInterna(
             int codigoEntrenador,
@@ -1253,55 +1257,145 @@ public class Club implements Serializable {
         return venta;
     }     
     
-    public VentaCafeteria comprarCafeteria(int codigoSocio, Map<Producto, Integer> productosComprados,
-            double propina, int puntosAUsar) {
-        Usuario usuario = buscarPorCodigo(codigoSocio);
-        if (!(usuario instanceof Socio)) {
-            throw new ReglaNegocioException("Solo un socio puede comprar en la cafeteria");
-        }
-        Socio socio = (Socio) usuario;
-        if (productosComprados == null || productosComprados.isEmpty()) {
-            throw new ReglaNegocioException("La compra no tiene productos");
-        }
-        if (propina < 0 || propina > 1) {
-            throw new ReglaNegocioException("La propina debe estar entre 0% y 100%");
-        }
-        if (puntosAUsar < 0) {
-            throw new ReglaNegocioException("Los puntos a usar no pueden ser negativos");
-        }
+    
+public VentaCafeteria comprarCafeteria(
+        int codigoComprador,
+        Map<Producto, Integer> productosComprados,
+        double propina,
+        int puntosAUsar) {
 
-        boolean estaEnTechada = enTechada(socio);
-        double subtotal = 0;
-        for (Map.Entry<Producto, Integer> e : productosComprados.entrySet()) {
-            Producto producto = e.getKey();
-            if (e.getValue() <= 0) {
-                throw new ReglaNegocioException("La cantidad de " + producto.getNombre() + " debe ser mayor que cero");
-            }
-            if (!productos.contains(producto)) {
-                throw new ReglaNegocioException(producto.getNombre() + " no esta registrado en el club");
-            }
-            if (producto instanceof ArticuloTienda) {
-                throw new ReglaNegocioException(producto.getNombre() + " es de la tienda, no de la cafeteria");
-            }
-            if (!producto.permitido(estaEnTechada)) {
-                throw new ReglaNegocioException("No se sirven bebidas calientes a un socio en una cancha techada de padel o tenis de mesa");
-            }
-            subtotal += producto.getPrecio() * e.getValue();
-        }
-        
-        if (!socio.tienePuntos(puntosAUsar)) {
-            throw new ReglaNegocioException("El socio no tiene suficientes puntos de fidelidad");
-        }
-        if (puntosAUsar > subtotal) {
-            throw new ReglaNegocioException("No se pueden usar mas puntos que el valor de la compra");
-        }
+    return comprarCafeteria(
+        codigoComprador, productosComprados,
+        propina, puntosAUsar, null
+    );
+}
 
-        VentaCafeteria venta = new VentaCafeteria(socio, productosComprados, propina, puntosAUsar);
-        socio.actualizarPuntos(venta.getPuntosGanados(), puntosAUsar);
-        ventas.add(venta);
-        guardar();
-        return venta;
+public VentaCafeteria comprarCafeteria(
+        int codigoComprador,
+        Map<Producto, Integer> productosComprados,
+        double propina,
+        int puntosAUsar,
+        String codigoDescuento) {
+
+    Usuario comprador = buscarPorCodigo(codigoComprador);
+
+    if (!(comprador instanceof Socio)
+            && !(comprador instanceof Empleado)) {
+        throw new ReglaNegocioException(
+            "Solo socios y empleados pueden comprar en la cafeteria"
+        );
     }
+
+    if (productosComprados == null
+            || productosComprados.isEmpty()) {
+        throw new ReglaNegocioException(
+            "La compra no tiene productos"
+        );
+    }
+
+    if (propina < 0 || propina > 1) {
+        throw new ReglaNegocioException(
+            "La propina debe estar entre 0% y 100%"
+        );
+    }
+
+    if (puntosAUsar < 0) {
+        throw new ReglaNegocioException(
+            "Los puntos no pueden ser negativos"
+        );
+    }
+
+    Socio socio = comprador instanceof Socio
+            ? (Socio) comprador : null;
+
+    if (socio == null && puntosAUsar > 0) {
+        throw new ReglaNegocioException(
+            "Solo los socios pueden usar puntos de fidelidad"
+        );
+    }
+
+    double porcentaje = descuento(
+        comprador, codigoDescuento
+    );
+
+    if (porcentaje > 0 && puntosAUsar > 0) {
+        throw new ReglaNegocioException(
+            "No se pueden combinar puntos y codigo de descuento"
+        );
+    }
+
+    boolean estaEnTechada =
+            socio != null && enTechada(socio);
+
+    double subtotal = 0;
+
+    for (Map.Entry<Producto, Integer> e
+            : productosComprados.entrySet()) {
+
+        Producto producto = e.getKey();
+        Integer cantidad = e.getValue();
+
+        if (producto == null || cantidad == null
+                || cantidad <= 0) {
+            throw new ReglaNegocioException(
+                "Producto o cantidad invalida"
+            );
+        }
+
+        if (!productos.contains(producto)) {
+            throw new ReglaNegocioException(
+                producto.getNombre()
+                + " no esta registrado en el club"
+            );
+        }
+
+        if (producto instanceof ArticuloTienda) {
+            throw new ReglaNegocioException(
+                "El articulo pertenece a la tienda"
+            );
+        }
+
+        if (!producto.permitido(estaEnTechada)) {
+            throw new ReglaNegocioException(
+                "Este producto no esta permitido en la instalacion"
+            );
+        }
+
+        subtotal += producto.getPrecio() * cantidad;
+    }
+
+    if (socio != null && !socio.tienePuntos(puntosAUsar)) {
+        throw new ReglaNegocioException(
+            "El socio no tiene suficientes puntos"
+        );
+    }
+
+    if (puntosAUsar > subtotal) {
+        throw new ReglaNegocioException(
+            "Los puntos superan el valor de la compra"
+        );
+    }
+
+    VentaCafeteria venta = new VentaCafeteria(
+        comprador,
+        productosComprados,
+        propina,
+        puntosAUsar,
+        porcentaje
+    );
+
+    if (socio != null) {
+        socio.actualizarPuntos(
+            venta.getPuntosGanados(), puntosAUsar
+        );
+    }
+
+    ventas.add(venta);
+    guardar();
+
+    return venta;
+}
+
     
     public VentaCafeteria comprarCafeteriaConBono(int codigoSocio, Map<Producto, Integer> productosComprados,
             double propina, Bono bono) {
@@ -2091,6 +2185,15 @@ public class Club implements Serializable {
         }
         return resultado;
     }
+
+
+    public void liberarCuposPreferenciales(int codigoAdministrador, Torneo torneo) {
+        exigirAdministrador(codigoAdministrador, "liberar cupos preferenciales");
+        validarTorneoAbierto(torneo);
+        torneo.liberarCuposPreferenciales();
+        guardar();
+    }
+
 
     private void validarTorneoAbierto(Torneo torneo) {
         if (torneo == null || !getTorneos().contains(torneo)) {

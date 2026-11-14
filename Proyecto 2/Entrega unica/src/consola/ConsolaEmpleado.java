@@ -160,14 +160,16 @@ private void menuPrincipal() {
         System.out.println("3. Solicitar cambio de turno");
         System.out.println("4. Sugerir producto");
         System.out.println("5. Torneos");
+        System.out.println("6. Compras");
 
         if (esEntrenador) {
-            System.out.println("6. Gestion deportiva");
+            System.out.println("7. Gestion deportiva");
         }
 
         System.out.println("0. Salir");
 
-        int maximo = esEntrenador ? 6 : 5;
+        int maximo = esEntrenador ? 7 : 6;
+
 
         opcion = entrada.leerEntero("Opcion", 0, maximo);
 
@@ -205,11 +207,19 @@ private void ejecutar(int opcion) {
                 ).mostrar();
                 break;
 
+            
             case 6:
+                new MenuCompras(
+                    club, empleado, entrada
+                ).mostrar();
+                break;
+
+            case 7:
                 if (empleado instanceof Entrenador) {
                     menuGestionDeportiva();
                 }
                 break;
+
 
             default:
                 break;
