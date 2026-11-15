@@ -85,6 +85,31 @@ public class ConsolaAdministrador {
         int opcion = -1;
         while (opcion != 0) {
             System.out.println();
+            System.out.println("=== Menu del administrador ===");
+            System.out.println("1. Torneos internos");
+            System.out.println("2. Equipos y jugadores");
+            System.out.println("3. Inventario, tienda e instalaciones");
+            System.out.println("4. Turnos del personal");
+            System.out.println("5. Reportes e historiales");
+            System.out.println("6. Competencias oficiales");
+            System.out.println("0. Salir");
+            opcion = entrada.leerEntero("Opcion", 0, 6);
+            switch (opcion) {
+                case 1: menuTorneos(); break;
+                case 2: new MenuAdminEquipos(club, administrador, entrada).mostrar(); break;
+                case 3: new MenuAdminInventario(club, administrador, entrada).mostrar(); break;
+                case 4: new MenuAdminTurnos(club, administrador, entrada).mostrar(); break;
+                case 5: new MenuAdminReportes(club, administrador, entrada).mostrar(); break;
+                case 6: new MenuAdminCompetencias(club, entrada).mostrar(); break;
+                default: break;
+            }
+        }
+    }
+
+    private void menuTorneos() {
+        int opcion = -1;
+        while (opcion != 0) {
+            System.out.println();
             System.out.println("--- Gestion de torneos ---");
             System.out.println("1. Crear torneo");
             System.out.println("2. Ver torneos (por estado)");
@@ -95,7 +120,7 @@ public class ConsolaAdministrador {
             System.out.println("7. Ver posiciones");
             System.out.println("8. Finalizar torneo y entregar premios");
             System.out.println("9. Ver historial detallado de un torneo");
-            System.out.println("0. Salir");
+            System.out.println("0. Volver");
             opcion = entrada.leerEntero("Opcion", 0, 9);
             ejecutar(opcion);
         }

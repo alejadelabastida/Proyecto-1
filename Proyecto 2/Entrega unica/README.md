@@ -6,17 +6,26 @@
 2. Juan Jose Castro
 3. Tomas Rivera
 
-## Proyecto 2 – Consola del administrador (torneos internos)
+## Proyecto 2 – Consola del administrador
 
 1. Abra `src/consola/ConsolaAdministrador.java`, clic derecho > **Run As > Java Application**.
 2. Entre con usuario `admin` y clave `admin123`. Si entra un socio o un empleado, el programa le avisa que use la consola de su rol y se cierra.
-3. El menú tiene 9 opciones: crear torneo, ver torneos por estado, ver inscritos, liberar cupos preferenciales, iniciar, registrar el resultado de un encuentro, ver posiciones, finalizar (reparte premios o bonos) y ver el historial.
-4. Los datos se cargan y se guardan solos en `datos/club.dat`. La primera vez se crean tres torneos de ejemplo.
+3. El menú principal tiene seis partes:
+   - **Torneos internos**: crear, ver por estado, ver inscritos, asignar entrenador a un equipo, iniciar, registrar resultados, posiciones, finalizar (premios o bonos) e historial.
+   - **Equipos y jugadores**: ver equipos, crear equipo, inscribir un socio en un equipo, dar de baja un jugador o un equipo.
+   - **Inventario, tienda e instalaciones**: ver inventario (todo o por ubicación), ver instalaciones y si están libres en una fecha y hora, reabastecer la tienda, mover artículos entre Tienda y Bodega, y aprobar o rechazar sugerencias de los empleados.
+   - **Turnos del personal**: ver los turnos y aprobar o rechazar solicitudes de cambio (no deja aprobar si quedan menos de 2 entrenadores y 1 fisioterapeuta).
+   - **Reportes e historiales**: ventas por rubro (tienda, cafetería y mensualidades), asistencia, resultados, evolución del ranking e historial de reservas, partidos y sesiones, siempre entre dos fechas.
+   - **Competencias oficiales**: registrar una competencia (liga o ASCUN), inscribir un equipo con su nómina y ver la tabla de posiciones.
+4. Los datos se cargan y se guardan solos en `datos/club.dat`. La primera vez se crean datos de ejemplo (torneos, inventario, instalaciones y turnos).
 5. Para probar un torneo completo: inscriba al menos dos socios desde `ConsolaParticipante` (deben estar en la disciplina y el nivel del torneo), vuelva a esta consola, inicie el torneo, registre los resultados y finalícelo.
 
-### Pruebas JUnit de torneos
+### Pruebas JUnit del administrador
 
-Clic derecho sobre `src/pruebas/GestionTorneosTest.java` > **Run As > JUnit Test**. Son 15 pruebas y no escriben archivos.
+Clic derecho sobre cada archivo > **Run As > JUnit Test**. Ninguna escribe archivos.
+- `GestionTorneosTest`: 15 pruebas de torneos (crear, iniciar, resultados, premios, bonos e historial).
+- `AdministracionTest`: 12 pruebas de inventario (reabastecer y mover) y de reportes (ventas con mensualidades, asistencia, resultados y ranking).
+- `ReservasPerfilTest`: 6 pruebas de reservas, de que el administrador no puede reservar y de la consulta del perfil.
 
 ## Proyecto 2 – Inscripciones y participantes
 
