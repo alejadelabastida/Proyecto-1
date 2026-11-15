@@ -1,9 +1,12 @@
-# Club Deportivo Séneca – Proyecto 1, Entrega 2
+# Club Deportivo Séneca – Proyecto 2, Entrega única
 
 ## Participantes
 
 1. Alejandra de la Bastida
 2. Juan Jose Castro
+3. Tomas Rivera
+
+
 
 ## Cómo ejecutar
 
@@ -34,3 +37,39 @@
 ### Pruebas JUnit de torneos
 
 Clic derecho sobre `src/pruebas/GestionTorneosTest.java` > **Run As > JUnit Test**. Son 15 pruebas y no escriben archivos.
+
+## Proyecto 2 – Inscripciones y participantes
+
+### Cómo ejecutar
+1. Clic derecho sobre `ConsolaParticipante.java` o `ConsolaEmpleado.java` > **Run As > Java Application**.
+2. Los datos se cargan y se guardan solos en `datos/club.dat`. La primera vez se crean datos de ejemplo. Para empezar de cero, borre la carpeta `datos`.
+
+### Usuarios de prueba (todos con clave `1234`)
+
+**Consola de participantes**
+- Socios: `sofia` y `juan` (tenis intermedio), `maria` y `pedro` (pádel avanzado).
+- Estudiante: `diana`.
+- Persona externa: `esteban`.
+
+**Consola de empleados**
+- Entrenadores: `carlos` (responsable del equipo Halcones Sub-15) y `laura`.
+- Fisioterapeuta: `mateo`.
+
+También se pueden registrar nuevos estudiantes y personas externas desde el menú inicial de la consola de participantes. El usuario no se puede repetir y la clave debe tener mínimo 4 caracteres.
+
+Si alguien entra a una consola que no es de su rol, el programa se lo avisa. El login da 3 intentos y no dice cuál dato falló.
+
+### Cómo probar un torneo con la consola del asministrador
+1. En `ConsolaParticipante`, inscriba al menos dos socios en un torneo.
+2. En `ConsolaAdministrador`, asigne el entrenador responsable a un equipo (opción 4) si va a probar equipos.
+3. En `ConsolaAdministrador`, inicie el torneo, registre los resultados y finalícelo.
+4. Si el torneo es recreativo, vuelva a `ConsolaParticipante`: el ganador verá su bono en Compras > Mis bonos de descuento y podrá usarlo en la tienda o la cafetería.
+
+
+### Pruebas JUnit
+Clic derecho sobre cada archivo de `src/pruebas` > **Run As > JUnit Test**:
+- `TorneoTest`: 10 pruebas unitarias (cupos preferenciales y reglas del torneo).
+- `InscripcionesTorneoTest`: 55 pruebas de integración, una o más por historia de usuario.
+- `BonosTest`: 9 pruebas (bono en tienda y cafetería, y academias).
+- `PersistenciaTorneosTest`: 1 prueba (guardar y volver a cargar). Escribe en una carpeta temporal.
+
